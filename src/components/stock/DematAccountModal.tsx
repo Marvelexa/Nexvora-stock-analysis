@@ -27,12 +27,12 @@ export const DematAccountModal: React.FC<DematAccountModalProps> = ({
   onSelectMode
 }) => {
   const [selectedBroker, setSelectedBroker] = useState<string>("ANGEL_ONE");
-  const [clientId, setClientId] = useState<string>("R673497");
-  const [apiKey, setApiKey] = useState<string>("at0UVM6C");
-  const [accessToken, setAccessToken] = useState<string>("0600");
-  const [totpSecret, setTotpSecret] = useState<string>("JULCA4BTAXZ6GS53QBOOCL3M6Q");
-  const [connectionStatus, setConnectionStatus] = useState<"CONNECTED" | "DISCONNECTED" | "TESTING">("CONNECTED");
-  const [message, setMessage] = useState<string | null>("Angel One SmartAPI Live Session Active (Client ID: R673497)");
+  const [clientId, setClientId] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [accessToken, setAccessToken] = useState<string>("");
+  const [totpSecret, setTotpSecret] = useState<string>("");
+  const [connectionStatus, setConnectionStatus] = useState<"CONNECTED" | "DISCONNECTED" | "TESTING">("DISCONNECTED");
+  const [message, setMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
