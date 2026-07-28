@@ -453,7 +453,18 @@ export const PaperTradingModal: React.FC<PaperTradingModalProps> = ({
                         return (
                           <tr key={trd.id} className="hover:bg-slate-900/60 transition">
                             <td className="py-3.5 px-4 text-slate-400 text-[11px]">{trd.exitTimestamp || "N/A"}</td>
-                            <td className="py-3.5 px-4 font-bold text-white">{trd.ticker || "STOCK"}</td>
+                            <td className="py-3.5 px-4 font-bold text-white flex flex-col gap-1">
+                              <span className="flex items-center gap-1.5">
+                                {trd.ticker || "STOCK"}
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-black tracking-wider ${
+                                  trd.type === "BUY" 
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" 
+                                    : "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                                }`}>
+                                  {trd.type === "BUY" ? "🟢 BUY (LONG)" : "🔴 SELL (SHORT)"}
+                                </span>
+                              </span>
+                            </td>
                             <td className="py-3.5 px-4 text-slate-200">{trd.quantity || 1}</td>
                             <td className="py-3.5 px-4 text-slate-200">
                               {currSym}{(trd.entryPrice || 0).toLocaleString()} ➔ {currSym}{(trd.exitPrice || 0).toLocaleString()}

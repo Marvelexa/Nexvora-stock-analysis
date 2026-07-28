@@ -617,6 +617,69 @@ export const AITradingBrainCard: React.FC<AITradingBrainCardProps> = ({
         {/* Institutional Dynamic Compounding Risk & Reward Engine V1 Card */}
         <DynamicCompoundingRiskCard result={result} />
 
+        {/* 🎯 EXACT AUTO-EXIT TAKE-PROFIT & STOP-LOSS LEVELS DISPLAY CARD */}
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 border border-indigo-500/40 space-y-3 font-mono">
+          <div className="flex items-center justify-between border-b border-indigo-500/20 pb-2">
+            <span className="text-xs font-bold text-white flex items-center gap-1.5 font-sans">
+              <Target className="w-4 h-4 text-emerald-400 animate-pulse" />
+              AUTO-EXIT LEVELS & AUTOMATIC PROFIT LOCK TARGETS:
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              {selectedMode === "INTRADAY_SCALPING" ? "⚡ INTRADAY SHORT-TERM" :
+               selectedMode === "OPTIONS_BUYING" ? "🎯 OPTIONS MOMENTUM" :
+               selectedMode === "SWING_TRADING" ? "📈 SWING MID-TERM" : "💎 LONG-TERM COMPOUNDER"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            {/* Take-Profit Auto-Exit Card */}
+            <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/50 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-emerald-400 font-bold">
+                <span>🎯 AUTO-EXIT TAKE-PROFIT LEVEL</span>
+                <span className="bg-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-300">Target 1 (+5.0R)</span>
+              </div>
+              <div className="text-lg font-black text-emerald-300">
+                {currSym}{(result.target1 || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] text-emerald-300/80 block font-sans">
+                Is rate par pahunchte hi stock <strong>apne aap profit lock karke exit</strong> ho jayega (+{
+                  isBuy 
+                    ? (((result.target1 - activePriceToUse) / activePriceToUse) * 100).toFixed(2)
+                    : (((activePriceToUse - result.target1) / activePriceToUse) * 100).toFixed(2)
+                }% profit).
+              </span>
+            </div>
+
+            {/* Stop-Loss Auto-Exit Card */}
+            <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/50 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-rose-400 font-bold">
+                <span>🛑 AUTO-EXIT STOP-LOSS LEVEL</span>
+                <span className="bg-rose-500/20 px-1.5 py-0.5 rounded text-rose-300">Risk Guard (-1.0R)</span>
+              </div>
+              <div className="text-lg font-black text-rose-300">
+                {currSym}{(result.stopLoss || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] text-rose-300/80 block font-sans">
+                Loss se bachane ke liye iss rate par <strong>automatically square-off / exit</strong> ho jayega (-{
+                  isBuy 
+                    ? (((activePriceToUse - result.stopLoss) / activePriceToUse) * 100).toFixed(2)
+                    : (((result.stopLoss - activePriceToUse) / activePriceToUse) * 100).toFixed(2)
+                }% max risk).
+              </span>
+            </div>
+          </div>
+
+          <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-[10px] text-slate-300 flex items-center justify-between font-sans">
+            <span>⏱️ <strong>Time Horizon Rules:</strong> {
+              selectedMode === "INTRADAY_SCALPING" ? "Intraday Scalping — Auto Square-off at 15:15 IST or Target Hit." :
+              selectedMode === "OPTIONS_BUYING" ? "Options Buying — Quick 5m Momentum Exit." :
+              selectedMode === "SWING_TRADING" ? "Swing Trading — Hold 2 to 10 days for Swing Target." :
+              "Long-Term Compounder — Multi-Month Fundamental Growth Trailing Exit."
+            }</span>
+            <span className="text-emerald-400 font-mono font-bold shrink-0 ml-2">GUARDIAN ACTIVE</span>
+          </div>
+        </div>
+
         {/* Action Button */}
         <div className="pt-2">
           <button
