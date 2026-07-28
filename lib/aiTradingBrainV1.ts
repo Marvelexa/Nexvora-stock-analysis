@@ -466,34 +466,48 @@ export class AITradingBrainEngine {
     const bearPatterns = detectedPatterns.filter(p => p.patternType === "BEARISH_REVERSAL" || p.patternName.includes("Double Top") || p.patternName.includes("M Pattern") || p.patternName.includes("Head & Shoulders") || p.patternName.includes("Bearish"));
     const bullPatterns = detectedPatterns.filter(p => p.patternType === "BULLISH_REVERSAL" || p.patternName.includes("Double Bottom") || p.patternName.includes("W Pattern") || p.patternName.includes("VCP") || p.patternName.includes("Bullish"));
 
-    const maxBearWinRate = bearPatterns.length > 0 ? Math.max(...bearPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
-    const maxBullWinRate = bullPatterns.length > 0 ? Math.max(...bullPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
+    // Check live price action invalidation of static patterns
+    const isPricePushingHighs = currentPrice >= (lastBar?.high || currentPrice);
+    const isPriceBreakingLows = currentPrice <= (lastBar?.low || currentPrice);
+
+    // If price is pushing new highs, discount static bearish patterns; if breaking lows, discount bullish patterns
+    const rawMaxBearWinRate = bearPatterns.length > 0 ? Math.max(...bearPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
+    const rawMaxBullWinRate = bullPatterns.length > 0 ? Math.max(...bullPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
+
+    const maxBearWinRate = isPricePushingHighs ? Math.max(0, rawMaxBearWinRate - 35) : rawMaxBearWinRate;
+    const maxBullWinRate = isPriceBreakingLows ? Math.max(0, rawMaxBullWinRate - 35) : rawMaxBullWinRate;
 
     let patternDriverScore = (alBrooks.pressureScore * 0.60) + (smc.smcScore * 0.40);
 
-    if (maxBearWinRate > 0 && maxBearWinRate >= maxBullWinRate) {
-      // 84% Bearish Pattern Win Rate (Head & Shoulders / Double Top) -> 16% BUY / 84% SELL Win Prob!
+    if (maxBearWinRate > 0 && maxBearWinRate > maxBullWinRate) {
       patternDriverScore = 100 - maxBearWinRate;
     } else if (maxBullWinRate > 0 && maxBullWinRate > maxBearWinRate) {
-      // 84% Bullish Pattern Win Rate (Double Bottom W / VCP Breakout) -> 84% BUY / 16% SELL Win Prob!
       patternDriverScore = maxBullWinRate;
     }
 
-    // When active patterns form, Pattern Cheat Sheet becomes Primary Core Driver (45% Weight!)
-    const hasActivePattern = bearPatterns.length > 0 || bullPatterns.length > 0;
-    const patternWeight = hasActivePattern ? 0.45 : 0.15;
+    // Micro-Tick Live Price Delta Contribution (Dynamic 5-second tick responsiveness)
+    const prevClose = prevBar?.close || currentPrice;
+    const priceDeltaPct = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+    const tickMomentumBonus = Math.min(25, Math.max(-25, priceDeltaPct * 150));
+
+    // When active patterns form, Pattern Cheat Sheet weight is 0.35, allowing live indicators & ticks to drive updates
+    const hasActivePattern = (bearPatterns.length > 0 && maxBearWinRate > 0) || (bullPatterns.length > 0 && maxBullWinRate > 0);
+    const patternWeight = hasActivePattern ? 0.35 : 0.15;
     const rsiWeight = (1.0 - patternWeight) * 0.28;
     const emaWeight = (1.0 - patternWeight) * 0.28;
     const candleWeight = (1.0 - patternWeight) * 0.24;
     const volWeight = (1.0 - patternWeight) * 0.20;
 
-    const continuousScore = Math.round(
+    const baseContinuousScore = (
       (patternDriverScore * patternWeight) +
       (rsiContribution * rsiWeight) +
       (emaContribution * emaWeight) +
       (candleContribution * candleWeight) +
       (volContribution * volWeight)
     );
+
+    // Dynamic continuous score with live micro-tick momentum adjustment
+    const continuousScore = Math.round(baseContinuousScore + tickMomentumBonus);
 
     // Clamp trendStrengthPct dynamically to full range [5, 95]
     const trendStrengthPct = Math.min(95, Math.max(5, continuousScore));
