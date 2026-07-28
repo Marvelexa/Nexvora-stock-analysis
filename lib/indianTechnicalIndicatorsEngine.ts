@@ -322,10 +322,10 @@ export class IndianTechnicalIndicatorsEngine {
       crossover = "BEARISH_CROSSOVER";
       desc = `⚠️ MACD BEARISH CROSSOVER: MACD line crossed BELOW signal line with expanding red histogram (${currHist}).`;
     } else if (currHist > 0) {
-      crossover = "BULLISH_CROSSOVER";
+      crossover = "NEUTRAL";
       desc = `MACD remains in Bullish Territory (Histogram: +${currHist}).`;
     } else if (currHist < 0) {
-      crossover = "BEARISH_CROSSOVER";
+      crossover = "NEUTRAL";
       desc = `MACD remains in Bearish Territory (Histogram: ${currHist}).`;
     }
 
@@ -344,11 +344,11 @@ export class IndianTechnicalIndicatorsEngine {
   public evaluateTripleConfirmation(vwap: VWAPResult, supertrend: SupertrendResult, macd: MACDResult): TripleConfirmationResult {
     const isVwapBuy = vwap.bias === "BULLISH";
     const isSupertrendBuy = supertrend.direction === "BULLISH_BUY";
-    const isMacdBuy = macd.crossover === "BULLISH_CROSSOVER";
+    const isMacdBuy = macd.crossover === "BULLISH_CROSSOVER" || macd.histogram > 0;
 
     const isVwapSell = vwap.bias === "BEARISH";
     const isSupertrendSell = supertrend.direction === "BEARISH_SELL";
-    const isMacdSell = macd.crossover === "BEARISH_CROSSOVER";
+    const isMacdSell = macd.crossover === "BEARISH_CROSSOVER" || macd.histogram < 0;
 
     const isTripleBuy = isVwapBuy && isSupertrendBuy && isMacdBuy;
     const isTripleSell = isVwapSell && isSupertrendSell && isMacdSell;

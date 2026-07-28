@@ -205,9 +205,11 @@ export class CandlestickPatternEngine {
       });
     }
 
-    // 7. Head & Shoulders Top Reversal
-    if (prevBar2.high > maxHigh15 * 0.98 && lastBar.close < prevBar.close && !isLastGreen && !isAboveEMA20) {
-      const stopLossPrice = Number((lastBar.high + 0.5 * atr14).toFixed(2));
+    // 7. Head & Shoulders Top Reversal (Requires Head peak > Left/Right Shoulders & Neckline Breakdown)
+    const isHeadPeak = prevBar2.high > prevBar3.high * 1.005 && prevBar2.high > prevBar.high * 1.005;
+    const isNecklineBreak = lastBar.close < Math.min(prevBar3.low, prevBar.low);
+    if (isHeadPeak && isNecklineBreak && !isLastGreen && !isAboveEMA20) {
+      const stopLossPrice = Number((Math.max(prevBar.high, lastBar.high) + 0.5 * atr14).toFixed(2));
       const risk = Math.max(2, stopLossPrice - entryPrice);
       detected.push({
         patternName: "Head & Shoulders Breakdown",

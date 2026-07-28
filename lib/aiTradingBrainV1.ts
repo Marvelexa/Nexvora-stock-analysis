@@ -339,7 +339,9 @@ export class AITradingBrainEngine {
     let techScore = 0;
     let fundScore = masterRulesScore;
     let sentScore = newsSentimentScore;
-    let oiScore = Math.min(100, Math.max(10, Math.round(oiResult.confidenceMultiplier * 50)));
+    const isBearishOIBase = oiResult.classification === "SHORT_BUILDUP" || oiResult.classification === "LONG_UNWINDING";
+    const rawOiScore = Math.round(50 * oiResult.confidenceMultiplier);
+    let oiScore = Math.min(95, Math.max(5, isBearishOIBase ? (100 - rawOiScore) : rawOiScore));
     let macroScore = 75;
 
     let eodForceCloseActive = false;
@@ -398,8 +400,10 @@ export class AITradingBrainEngine {
       // Positional F&O Tech Score: MTF (35%) + VCP (25%) + SMC (25%) + Al Brooks (15%)
       techScore = (mtf.confluenceScore * 0.35) + (vcp.vcpScore * 0.25) + (smc.smcScore * 0.25) + (alBrooks.pressureScore * 0.15);
       
-      // 4-Quadrant OI Multiplier Confluence
-      oiScore = Math.min(100, Math.max(10, Math.round(50 * oiResult.confidenceMultiplier)));
+      // 4-Quadrant OI Multiplier Directional Alignment
+      const isBearishOI = oiResult.classification === "SHORT_BUILDUP" || oiResult.classification === "LONG_UNWINDING";
+      const baseOiScore = Math.round(50 * oiResult.confidenceMultiplier);
+      oiScore = Math.min(95, Math.max(5, isBearishOI ? (100 - baseOiScore) : baseOiScore));
     }
 
     let rawTrendScore = Math.round(
