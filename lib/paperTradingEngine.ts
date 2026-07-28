@@ -282,10 +282,6 @@ export class PaperTradingEngine {
 
     let safeQty = Math.max(0.0001, quantity || 1);
     const safeEntryPrice = Math.max(0.01, entryPrice || 100);
-    
-    if (this.cashBalance < 50000) {
-      this.cashBalance = 1000000;
-    }
 
     let requiredCapitalUSD = safeQty * safeEntryPrice;
     let requiredCapitalINR = currency === "USD" ? requiredCapitalUSD * USD_TO_INR : requiredCapitalUSD;

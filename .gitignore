@@ -12,3 +12,13 @@ public/screenshots/
 *.png
 *.txt
 *.webm
+
+# Session, Credential & State Files
+.angelone_session.json
+.paper_trading_state.json
+.trade_outcomes_state.json
+*.session.json
+*_state.json
+firebase-applet-config.json
+.scrip_master.json
+

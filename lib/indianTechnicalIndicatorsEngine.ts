@@ -224,15 +224,42 @@ export class IndianTechnicalIndicatorsEngine {
     const atr = this.calculateATR(bars, period);
     const last = bars[bars.length - 1];
 
-    const hl2 = (last.high + last.low) / 2;
-    const basicUpperBand = hl2 + multiplier * atr;
-    const basicLowerBand = hl2 - multiplier * atr;
+    let prevLower = (bars[0].high + bars[0].low) / 2 - multiplier * atr;
+    let prevUpper = (bars[0].high + bars[0].low) / 2 + multiplier * atr;
+    let direction: "BULLISH_BUY" | "BEARISH_SELL" = "BULLISH_BUY";
+    let stPrice = prevLower;
 
-    const lastClose = last.close;
-    const isBullish = lastClose >= basicLowerBand;
+    for (let i = 1; i < bars.length; i++) {
+      const b = bars[i];
+      const mid = (b.high + b.low) / 2;
+      const bUpper = mid + multiplier * atr;
+      const bLower = mid - multiplier * atr;
 
-    const stPrice = Number((isBullish ? basicLowerBand : basicUpperBand).toFixed(2));
-    const direction = isBullish ? "BULLISH_BUY" : "BEARISH_SELL";
+      const fLower = (bLower > prevLower || bars[i - 1].close < prevLower) ? bLower : prevLower;
+      const fUpper = (bUpper < prevUpper || bars[i - 1].close > prevUpper) ? bUpper : prevUpper;
+
+      if (direction === "BULLISH_BUY") {
+        if (b.close < fLower) {
+          direction = "BEARISH_SELL";
+          stPrice = fUpper;
+        } else {
+          stPrice = fLower;
+        }
+      } else {
+        if (b.close > fUpper) {
+          direction = "BULLISH_BUY";
+          stPrice = fLower;
+        } else {
+          stPrice = fUpper;
+        }
+      }
+      prevLower = fLower;
+      prevUpper = fUpper;
+    }
+
+    const lastClose = bars[bars.length - 1].close;
+    stPrice = Number(stPrice.toFixed(2));
+    const isBullish = direction === "BULLISH_BUY";
 
     return {
       supertrendPrice: stPrice,

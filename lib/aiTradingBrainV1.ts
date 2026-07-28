@@ -466,8 +466,8 @@ export class AITradingBrainEngine {
     const bearPatterns = detectedPatterns.filter(p => p.patternType === "BEARISH_REVERSAL" || p.patternName.includes("Double Top") || p.patternName.includes("M Pattern") || p.patternName.includes("Head & Shoulders") || p.patternName.includes("Bearish"));
     const bullPatterns = detectedPatterns.filter(p => p.patternType === "BULLISH_REVERSAL" || p.patternName.includes("Double Bottom") || p.patternName.includes("W Pattern") || p.patternName.includes("VCP") || p.patternName.includes("Bullish"));
 
-    const maxBearWinRate = bearPatterns.length > 0 ? Math.max(...bearPatterns.map(p => p.winRatePct)) : 0;
-    const maxBullWinRate = bullPatterns.length > 0 ? Math.max(...bullPatterns.map(p => p.winRatePct)) : 0;
+    const maxBearWinRate = bearPatterns.length > 0 ? Math.max(...bearPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
+    const maxBullWinRate = bullPatterns.length > 0 ? Math.max(...bullPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
 
     let patternDriverScore = (alBrooks.pressureScore * 0.60) + (smc.smcScore * 0.40);
 
