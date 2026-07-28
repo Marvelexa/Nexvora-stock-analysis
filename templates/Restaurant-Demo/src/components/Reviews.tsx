@@ -44,7 +44,8 @@ export default function Reviews() {
                     <img 
                       src={REVIEWS[current].image} 
                       className="w-24 h-24 rounded-3xl object-cover ring-8 ring-brand-cream p-1.5 bg-white shadow-2xl" 
-                      alt={REVIEWS[current].name} 
+                      alt={REVIEWS[current].name}
+                      referrerPolicy="no-referrer"
                     />
                     <div className="absolute -bottom-2 -right-2 bg-brand-red p-2 rounded-xl shadow-lg">
                       <Quote className="w-4 h-4 text-white" />

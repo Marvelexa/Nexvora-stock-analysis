@@ -338,8 +338,15 @@ export function LeadDiscovery() {
                {leads.map((lead, i) => (
                  <Card key={i} className="hover:border-primary/50 transition-colors bg-card/60 backdrop-blur-sm">
                    <CardContent className="p-6">
-                     <div className="flex items-start justify-between">
-                       <div className="space-y-3 flex-1 mr-4">
+                     <div className="flex items-start justify-between gap-4">
+                       {(lead.photos?.[0] || lead.thumbnailPhoto) && (
+                         <img 
+                           src={lead.photos?.[0] || lead.thumbnailPhoto} 
+                           alt={lead.name} 
+                           className="w-16 h-16 rounded-xl object-cover border border-border/60 shrink-0 shadow-sm"
+                         />
+                       )}
+                       <div className="space-y-3 flex-1 mr-2">
                          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2 flex-wrap">
                            {searchSource === "maps" ? (
                              <span>{highlightText(lead.name, searchedNiche)}</span>
@@ -435,18 +442,29 @@ export function LeadDiscovery() {
                                <Mail className="w-3.5 h-3.5" /> {lead.email}
                              </span>
                            )}
-                           
-                           {searchSource !== "maps" && lead.address && (
-                             <a href={lead.address} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline">
-                               {searchSource === "github" && <Github className="w-3.5 h-3.5" />}
-                               {searchSource === "linkedin" && <Link2 className="w-3.5 h-3.5" />}
-                               {searchSource === "twitter" && <Search className="w-3.5 h-3.5" />}
-                               {searchSource === "upwork" && <Search className="w-3.5 h-3.5" />}
-                               {searchSource === "freelancer" && <Search className="w-3.5 h-3.5" />}
-                               Open Project / Thread
-                             </a>
-                           )}
-                         </div>
+
+                           {searchSource === "maps" && (
+                              <a 
+                                href={lead.mapsUrl || (typeof lead.id === 'string' && lead.id.startsWith('http') ? lead.id : `https://www.google.com/maps/search/${encodeURIComponent(lead.name + ' ' + (lead.address || city || ''))}`)} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="flex items-center gap-1.5 text-primary font-medium hover:underline"
+                              >
+                                <MapPin className="w-3.5 h-3.5 text-rose-500" /> View on Google Maps
+                              </a>
+                            )}
+                            
+                            {searchSource !== "maps" && lead.address && (
+                              <a href={lead.address} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline">
+                                {searchSource === "github" && <Github className="w-3.5 h-3.5" />}
+                                {searchSource === "linkedin" && <Link2 className="w-3.5 h-3.5" />}
+                                {searchSource === "twitter" && <Search className="w-3.5 h-3.5" />}
+                                {searchSource === "upwork" && <Search className="w-3.5 h-3.5" />}
+                                {searchSource === "freelancer" && <Search className="w-3.5 h-3.5" />}
+                                Open Project / Thread
+                              </a>
+                            )}
+                          </div>
                        </div>
                        
                        <Button size="sm" className="shrink-0 gap-1.5 mt-1" onClick={() => handleSaveToCRM(lead)}>

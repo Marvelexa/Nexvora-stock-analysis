@@ -34,10 +34,32 @@ const defaultSlides: SlideData[] = [
 
 export default function Hero() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [slides, setSlides] = useState<SlideData[]>(defaultSlides);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const rawPhotos = searchParams.get('photos');
+      const businessName = searchParams.get('name') || '';
+
+      if (rawPhotos) {
+        const photos: string[] = JSON.parse(rawPhotos);
+        if (Array.isArray(photos) && photos.length > 0) {
+          const updated = defaultSlides.map((slide, idx) => ({
+            ...slide,
+            title: businessName ? `${businessName.toUpperCase()} | Collection` : slide.title,
+            image: photos[idx % photos.length] || slide.image
+          }));
+          setSlides(updated);
+        }
+      }
+    } catch {}
+  }, []);
 
   const paginate = useCallback((newDirection: number) => {
-    setCurrentIndex((prev) => (prev + newDirection + defaultSlides.length) % defaultSlides.length);
-  }, []);
+    setCurrentIndex((prev) => (prev + newDirection + slides.length) % slides.length);
+  }, [slides.length]);
 
   // Auto carousel rotation
   useEffect(() => {
@@ -102,7 +124,7 @@ export default function Hero() {
       <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-accent-blue/5 blur-[100px] pointer-events-none rounded-full" />
 
       <div className="relative h-[480px] w-full max-w-7xl mx-auto flex items-center justify-center px-6">
-        {defaultSlides.map((slide, index) => {
+        {slides.map((slide, index) => {
           const { x, scale, zIndex, opacity } = getSlideStyle(index);
           const isActive = index === currentIndex;
 
@@ -135,6 +157,7 @@ export default function Hero() {
                   src={slide.image}
                   className="w-full h-full object-cover brightness-100 transition-transform duration-[2000ms] group-hover:scale-105"
                   alt={`Slide ${slide.id}`}
+                  referrerPolicy="no-referrer"
                 />
               </div>
             </motion.div>
@@ -159,7 +182,7 @@ export default function Hero() {
 
         {/* Indicators */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-30">
-          {defaultSlides.map((_, i) => (
+          {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentIndex(i)}

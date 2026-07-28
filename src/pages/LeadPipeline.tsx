@@ -120,7 +120,7 @@ export function LeadPipeline() {
   // Template System states
   const [templateText, setTemplateText] = useState(() => 
     localStorage.getItem("WACRM_OUTREACH_TEMPLATE") || 
-    "Hello! I made this sample website for {name} — saw your awesome reviews about your beautiful collection of ethnic wear and the very friendly, attentive staff. Your clothing store deserves to show up properly online. While many agencies charge more, if you like it, I can customize this and make it live in 1 week with complete premium features and all integrations for just $500!"
+    "Hi {{business_name}}!\n\nI found your business online and made this quick 20-second website preview for you.\n\nWe can build a website like this for just {{price}}.\n\nTap an option below if you'd like to know more."
   );
   const [useTemplate, setUseTemplate] = useState(() => 
     localStorage.getItem("WACRM_USE_TEMPLATE") === "true"
@@ -134,13 +134,21 @@ export function LeadPipeline() {
     localStorage.setItem("WACRM_USE_TEMPLATE", String(useTemplate));
   }, [useTemplate]);
 
+  const formatTemplateForLead = (tpl: string, leadName: string, price: string = "$99") => {
+    return tpl
+      .replace(/\{\{business_name\}\}/g, leadName)
+      .replace(/\{business_name\}/g, leadName)
+      .replace(/\{name\}/g, leadName)
+      .replace(/\(business name\)/g, leadName)
+      .replace(/\{\{1\}\}/g, leadName)
+      .replace(/\{\{price\}\}/g, price)
+      .replace(/\{price\}/g, price);
+  };
+
   // Dynamically format template message for the active outreach lead
   useEffect(() => {
     if (activeOutreachLead && useTemplate && templateText) {
-      const formatted = templateText
-        .replace(/\{name\}/g, activeOutreachLead.name)
-        .replace(/\(business name\)/g, activeOutreachLead.name)
-        .replace(/\{\{1\}\}/g, activeOutreachLead.name);
+      const formatted = formatTemplateForLead(templateText, activeOutreachLead.name);
       setOutreachMessage(formatted);
     }
   }, [activeOutreachLead, useTemplate, templateText]);
@@ -156,10 +164,7 @@ export function LeadPipeline() {
     }
     setLeads(prev => prev.map(l => ({
       ...l,
-      outreachMessage: templateText
-        .replace(/\{name\}/g, l.name)
-        .replace(/\(business name\)/g, l.name)
-        .replace(/\{\{1\}\}/g, l.name)
+      outreachMessage: formatTemplateForLead(templateText, l.name)
     })));
     alert("✓ Template applied to all leads successfully!");
   };
@@ -728,6 +733,9 @@ export function LeadPipeline() {
           rating: lead.rating,
           reviewsCount: lead.reviewsCount || lead.reviews || 0,
           phone: lead.phone || "",
+          location: lead.location || lead.address || "",
+          mapsUrl: lead.mapsUrl || "",
+          photos: lead.photos || [],
         }),
       });
 
@@ -806,6 +814,9 @@ export function LeadPipeline() {
             rating: lead.rating,
             reviewsCount: lead.reviewsCount || lead.reviews || 0,
             phone: lead.phone || "",
+            location: lead.location || lead.address || "",
+            mapsUrl: lead.mapsUrl || "",
+            photos: lead.photos || [],
           }),
         });
 

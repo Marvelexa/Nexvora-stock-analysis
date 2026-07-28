@@ -3,6 +3,8 @@ import path from "path";
 import { pathToFileURL } from "url";
 import { createServer as createViteServer } from "vite";
 import AdmZip from "adm-zip";
+import { WebSocketServer, WebSocket } from "ws";
+import { brokerTickEngine } from "./lib/brokerTickEngine.js";
 
 import fs from "fs";
 import { getCitiesForLocation } from "./lib/cityDatabase.js";
@@ -11,6 +13,8 @@ import { ScraperEngine, LeadData } from "./lib/ScraperEngine.js";
 // ... existing code ...
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import { websiteAnalyzer } from "./lib/websiteAnalyzer.js";
+import { checkpointManager } from "./lib/checkpointManager.js";
 
 dotenv.config();
 
@@ -481,6 +485,7 @@ async function startServer() {
           rating: parseFloat(newLead.rating) || 0,
           reviewsCount: parseInt(newLead.reviewsCount || newLead.reviews) || 0,
           mapsUrl: newLead.mapsUrl || "",
+          photos: Array.isArray(newLead.photos) ? newLead.photos : [],
           score: parseInt(newLead.leadScore || newLead.score) || 50,
           siteStatus: (newLead.website && newLead.website !== "NO have yet") ? "present" : "missing",
           isMock: false
@@ -782,41 +787,92 @@ async function startServer() {
 
   function calculateLeadScore(lead: LeadData): number {
     let score = 50; // Base score
-    if (!lead.website || lead.siteStatus === 'missing') score += 20; // High value for web agency: no website
+    if (!lead.website || lead.siteStatus === 'missing') score += 25; // No website
+    else if (lead.websiteOpportunityScore === 80) score += 10; // Old/broken website
     if (lead.rating && lead.rating >= 4.0) score += 15; // Reputable business
-    if (lead.reviewsCount && lead.reviewsCount > 50) score += 15; // High volume (paying customers)
+    if (lead.reviewsCount && lead.reviewsCount > 50) score += 15; // High volume
+    if (lead.phone) score += 5; // Contactable
     return Math.min(100, score);
   }
 
   app.post("/api/leads/discover", async (req, res) => {
     try {
-      const { category, location, maxLeads } = req.body;
+      const { category, location, maxLeads, resumeId } = req.body;
       
-      if (!category || !location) {
-        return res.status(400).json({ error: "Category and location are required" });
+      if (!category && !resumeId) {
+        return res.status(400).json({ error: "Category or resumeId is required" });
       }
 
-      // 1. City Expansion
-      const targetCities = getCitiesForLocation(location);
-      console.log(`[Discovery] Expanding location ${location} into ${targetCities.length} cities.`);
+      let targetCities: string[] = [];
+      let currentCityIndex = 0;
+      let jobId = resumeId || `job_${Date.now()}`;
+      let allExtractedLeads: LeadData[] = [];
+      
+      if (resumeId) {
+        const cp = checkpointManager.getCheckpoint(resumeId);
+        if (!cp) {
+          return res.status(404).json({ error: "Checkpoint not found" });
+        }
+        targetCities = cp.cities;
+        currentCityIndex = cp.currentCityIndex;
+        console.log(`[Discovery] Resuming job ${resumeId} from city index ${currentCityIndex}`);
+        checkpointManager.updateProgress(jobId, { status: 'running' });
+      } else {
+        if (!location) return res.status(400).json({ error: "Location is required for new jobs" });
+        targetCities = getCitiesForLocation(location);
+        console.log(`[Discovery] Expanding location ${location} into ${targetCities.length} cities.`);
+        checkpointManager.saveCheckpoint({
+          id: jobId,
+          country: location,
+          category,
+          maxLeads: maxLeads || 0,
+          currentCityIndex: 0,
+          cities: targetCities,
+          leadsCollected: 0,
+          duplicateCount: 0,
+          failedCities: [],
+          status: 'running',
+          lastUpdated: new Date().toISOString()
+        });
+      }
 
-      // 2. Playwright Execution Engine
+      // We'll process asynchronously if there are many cities, but for simplicity here we return the final result.
+      // In a real production app, we would return jobId immediately and have the client poll /api/scrape/status/:id
+      // but to keep compatibility with existing frontend, we'll await it (though it might timeout).
+
       const engine = new ScraperEngine();
       await engine.init();
       
-      const allExtractedLeads: LeadData[] = [];
-      
-      // Limit to 3 cities max for this demo to avoid extreme timeouts during development.
-      // In production, you would run this in a background job or worker.
       const maxCitiesToProcess = Math.min(targetCities.length, 3);
       
-      for (let i = 0; i < maxCitiesToProcess; i++) {
+      for (let i = currentCityIndex; i < targetCities.length && i < currentCityIndex + maxCitiesToProcess; i++) {
+        const cp = checkpointManager.getCheckpoint(jobId);
+        if (cp && cp.status === 'stopped') {
+           console.log(`[Discovery] Job ${jobId} was stopped.`);
+           break;
+        }
+
         const city = targetCities[i];
         const searchQuery = `${category} in ${city}`;
-        const leads = await engine.scrapeCity(searchQuery, city, category);
-        allExtractedLeads.push(...leads);
+        try {
+          const leads = await engine.scrapeCity(searchQuery, city, category, jobId);
+          allExtractedLeads.push(...leads);
+          
+          checkpointManager.updateProgress(jobId, { 
+            currentCityIndex: i + 1,
+            leadsCollected: allExtractedLeads.length
+          });
+        } catch (e: any) {
+          console.error(`[Discovery] Failed to scrape city ${city}:`, e);
+          const cpNow = checkpointManager.getCheckpoint(jobId);
+          if (cpNow) {
+            checkpointManager.updateProgress(jobId, {
+              failedCities: [...cpNow.failedCities, city],
+              currentCityIndex: i + 1
+            });
+          }
+        }
         
-        // Optional: stop early if we hit a requested maxLeads count
         if (maxLeads && allExtractedLeads.length >= parseInt(maxLeads)) {
            break;
         }
@@ -825,7 +881,9 @@ async function startServer() {
       await engine.close();
       const debugLogs = engine.getLogs();
 
-      // 3. Deduplication Engine (by Maps URL or strict Name + Address)
+      checkpointManager.updateProgress(jobId, { status: 'completed' });
+
+      // Deduplication
       const uniqueLeads = new Map<string, LeadData>();
       allExtractedLeads.forEach(lead => {
          const dedupKey = lead.mapsUrl || `${lead.name}-${lead.location}`;
@@ -834,36 +892,58 @@ async function startServer() {
          }
       });
 
-      // 4. Strict Validation & Scoring
-      const validLeads = Array.from(uniqueLeads.values()).filter(lead => {
+      // Website Analysis & Scoring
+      let validLeads = Array.from(uniqueLeads.values()).filter(lead => {
          const hasRequired = lead.name && lead.location && lead.mapsUrl;
-         if (!hasRequired) {
-             console.log(`[Validation] Rejected missing core required fields: ${lead.name || 'Unknown'}`);
-             return false;
-         }
+         if (!hasRequired) return false;
          return true;
-      }).map(lead => {
-         lead.score = calculateLeadScore(lead);
-         lead.siteStatus = lead.website ? 'present' : 'missing';
-         return lead;
       });
 
-      // Sort by Lead Score descending
+      console.log(`[Discovery] Starting website analysis for ${validLeads.length} leads...`);
+      for (let lead of validLeads) {
+         if (lead.website) {
+            try {
+              const analysis = await websiteAnalyzer.analyze(lead.website);
+              lead.websiteOpportunityScore = analysis.opportunityScore;
+            } catch (e) {
+              lead.websiteOpportunityScore = 80;
+            }
+         } else {
+            lead.websiteOpportunityScore = 100; // No website
+         }
+         
+         lead.score = calculateLeadScore(lead);
+         lead.siteStatus = lead.website ? 'present' : 'missing';
+      }
+
       validLeads.sort((a, b) => (b.score || 0) - (a.score || 0));
 
       if (validLeads.length === 0) {
         return res.json({ 
           status: "NO_RESULTS_FOUND",
           results: [],
-          debug: { citiesScanned: targetCities.slice(0, maxCitiesToProcess), logs: debugLogs }
+          debug: { jobId, citiesScanned: targetCities.slice(currentCityIndex, currentCityIndex + maxCitiesToProcess), logs: debugLogs }
         });
       }
 
-      res.json({ status: "SUCCESS", results: validLeads, debug: { logs: debugLogs } });
+      res.json({ status: "SUCCESS", jobId, results: validLeads, debug: { logs: debugLogs } });
     } catch(err) {
       console.error(err);
       res.status(500).json({ error: "Failed to scrape leads" });
     }
+  });
+
+  app.get("/api/scrape/status/:id", (req, res) => {
+    const cp = checkpointManager.getCheckpoint(req.params.id);
+    if (!cp) return res.status(404).json({ error: "Job not found" });
+    res.json(cp);
+  });
+
+  app.post("/api/scrape/stop/:id", (req, res) => {
+    const cp = checkpointManager.getCheckpoint(req.params.id);
+    if (!cp) return res.status(404).json({ error: "Job not found" });
+    checkpointManager.updateProgress(req.params.id, { status: 'stopped' });
+    res.json({ success: true, message: "Job stopped" });
   });
 
   app.post("/api/leads/discover/github", async (req, res) => {
@@ -1638,7 +1718,9 @@ const safeMoveVideo = async (src: string, dest: string, retries = 5, delay = 500
 };
 
   async function processOutreach(req: any, res: any) {
-    const { leadId, name, category, rating, reviewsCount, phone } = req.body;
+    const { leadId, name, category, rating, reviewsCount, phone, photos, location, address, mapsUrl } = req.body;
+    let leadPhotos: string[] = Array.isArray(photos) ? photos.slice(0, 5) : [];
+    const leadLocation = location || address || "";
     
     if (!leadId || !name) {
       return res.status(400).json({ error: "Lead ID and name are required" });
@@ -1678,6 +1760,21 @@ const safeMoveVideo = async (src: string, dest: string, retries = 5, delay = 500
         templateType = "cafe";
       }
 
+      if (leadPhotos.length < 5) {
+        console.log(`[Outreach Factory] Lead ${name} has ${leadPhotos.length} photo(s). Fetching full gallery from Google Maps...`);
+        try {
+          const fetchedPhotos = await ScraperEngine.fetchPhotosForBusiness(name, leadLocation, mapsUrl, category);
+          if (fetchedPhotos && fetchedPhotos.length > 0) {
+            const combined = [...leadPhotos, ...fetchedPhotos];
+            const uniquePhotos = Array.from(new Set(combined));
+            leadPhotos = uniquePhotos.slice(0, 12);
+            console.log(`[Outreach Factory] Successfully enriched ${leadPhotos.length} gallery photos for ${name}`);
+          }
+        } catch (e) {
+          console.error(`[Outreach Factory] Failed to fetch gallery photos for ${name}`, e);
+        }
+      }
+
       const videosDir = path.join(process.cwd(), "public", "videos");
       if (!fs.existsSync(videosDir)) fs.mkdirSync(videosDir, { recursive: true });
 
@@ -1698,7 +1795,8 @@ const safeMoveVideo = async (src: string, dest: string, retries = 5, delay = 500
           page.setDefaultTimeout(90000);
           recordingStart = Date.now(); // Reset recording start to exact moment page is created
           
-          const targetUrl = `http://localhost:${PORT}/templates/${templateType}?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category || "")}&phone=${encodeURIComponent(phone || "")}`;
+          const photosParam = leadPhotos.length > 0 ? `&photos=${encodeURIComponent(JSON.stringify(leadPhotos))}` : '';
+          const targetUrl = `http://localhost:${PORT}/templates/${templateType}?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category || "")}&phone=${encodeURIComponent(phone || "")}${photosParam}`;
           console.log(`[Outreach Playwright] Navigating to: ${targetUrl}`);
           await page.goto(targetUrl, { waitUntil: "load", timeout: 60000 });
           
@@ -1867,7 +1965,7 @@ const safeMoveVideo = async (src: string, dest: string, retries = 5, delay = 500
 
       // 3. Craft Personalized Sales Pitch (AI Disabled to save time/tokens)
       // We use their exact Meta template text so it shows up correctly in the CRM UI fallback.
-      let messageText = `Hello! I made a personalized video and sample website design for ${name} — saw your amazing reviews about your beautiful collection of ethnic wear and the extremely friendly, attentive staff. Your clothing store has such a great reputation, and it truly deserves to show up properly online with a premium web presence. I recorded a quick video walkthrough showing how we can transform your digital storefront, get it live in just 1 week, and integrate complete premium features to attract more customers. I have attached the video here.`;
+      let messageText = `Hi ${name}!\n\nI found your business online and made this quick 20-second website preview for you.\n\nWe can build a website like this for just $99.\n\nTap an option below if you'd like to know more.`;
 
       let finalVideoUrl = `/videos/${sanitizedId}.mp4`;
       
@@ -1905,7 +2003,7 @@ const safeMoveVideo = async (src: string, dest: string, retries = 5, delay = 500
       res.json({
         success: true,
         videoUrl: finalVideoUrl,
-        websiteUrl: `/templates/${templateType}?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category || "")}&phone=${encodeURIComponent(phone || "")}`,
+        websiteUrl: `/templates/${templateType}?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category || "")}&phone=${encodeURIComponent(phone || "")}${leadPhotos.length > 0 ? '&photos=' + encodeURIComponent(JSON.stringify(leadPhotos)) : ''}`,
         message: messageText
       });
 
@@ -2045,6 +2143,455 @@ const safeMoveVideo = async (src: string, dest: string, retries = 5, delay = 500
     }
   });
 
+  // ==========================================
+  // STOCK RESEARCH & ANALYST ENGINE API ROUTES
+  // ==========================================
+  app.get("/api/stock/list", async (_req, res) => {
+    try {
+      const { stockResearchEngine } = await import("./lib/stockEngine.js");
+      const stocks = stockResearchEngine.getKnownStocks();
+      res.json({ success: true, stocks });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch stock list" });
+    }
+  });
+
+  const normalizeTicker = (raw: string) => {
+    let t = decodeURIComponent(raw || "").toUpperCase().trim();
+    if (t.includes("NSEI") || t === "NIFTY" || t === "NIFTY50") return "^NSEI";
+    if (t.includes("BSESN") || t === "SENSEX") return "^BSESN";
+    if (t === "BANKNIFTY" || t === "NIFTYBANK") return "^NSEBANK";
+
+    const usTickers = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "META", "AMD", "NFLX"];
+    const isCrypto = t.includes("BTC") || t.includes("ETH") || t.includes("SOL") || t.includes("XRP") || t.includes("DOGE") || t.includes("BNB") || t.includes("ADA") || t.includes("AVAX") || t.includes("DOT") || t.includes("LINK") || t.endsWith("USD") || t.endsWith("USDT");
+    if (usTickers.includes(t) || isCrypto) return t;
+
+    if (!t.endsWith(".NS") && !t.endsWith(".BO") && !t.startsWith("^")) {
+      return `${t}.NS`;
+    }
+    return t;
+  };
+
+  app.get("/api/stock/:ticker/live-quote", async (req, res) => {
+    const ticker = normalizeTicker(req.params.ticker);
+    if (!ticker) return res.status(400).json({ error: "Ticker is required" });
+    try {
+      const { stockResearchEngine } = await import("./lib/stockEngine.js");
+      const quote = await stockResearchEngine.fetchRealTimeQuote(ticker);
+      res.json({ success: true, ticker, quote });
+    } catch (error: any) {
+      console.error("[Stock Live Quote Error]", error);
+      res.status(500).json({ error: error.message || "Failed to fetch live quote" });
+    }
+  });
+
+  // Live candle data from brokerTickEngine (real market data)
+  app.get("/api/stock/:ticker/live-candles", (req, res) => {
+    const ticker = normalizeTicker(req.params.ticker);
+    const timeframe = (req.query.timeframe as string) || "5m";
+    if (!ticker) return res.status(400).json({ error: "Ticker is required" });
+
+    // Resolve internal symbol key (e.g. "RELIANCE.NS" -> "RELIANCE")
+    const cleanSymbol = ticker.replace(".NS", "").replace(".BO", "").replace("^", "").toUpperCase();
+    
+    const candles = brokerTickEngine.getHistoricalCandles(cleanSymbol, timeframe);
+    const lastPrice = brokerTickEngine.getLastKnownPrice(cleanSymbol);
+    const status = brokerTickEngine.getStatus();
+
+    res.json({
+      success: true,
+      ticker,
+      timeframe,
+      candles,
+      lastRealPrice: lastPrice,
+      feedStatus: status,
+      source: "TRADINGVIEW_SCANNER_REAL_FEED"
+    });
+  });
+
+  // 👼 ANGEL ONE SMARTAPI BACKEND ENDPOINTS
+  app.post("/api/broker/angelone/login", async (req, res) => {
+    try {
+      const { apiKey, clientCode, mpin, totpSecret } = req.body;
+      const { angelOneSmartApiEngine } = await import("./lib/angelOneSmartApiEngine.js");
+      const result = await angelOneSmartApiEngine.generateSession({ apiKey, clientCode, mpin, totpSecret });
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.get("/api/broker/angelone/token/:symbol", async (req, res) => {
+    try {
+      const symbol = req.params.symbol;
+      const exchange = (req.query.exchange as string) || "NSE";
+      const { angelOneSmartApiEngine } = await import("./lib/angelOneSmartApiEngine.js");
+      const token = angelOneSmartApiEngine.getToken(symbol, exchange);
+      res.json({ success: true, symbol, exchange, token });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.get("/api/broker/angelone/candles", async (req, res) => {
+    try {
+      const symbol = (req.query.symbol as string) || "RELIANCE";
+      const cleanSym = symbol.toUpperCase().replace(".NS", "").replace(".BO", "").replace("^", "").trim();
+      const isCrypto = cleanSym.includes("BTC") || cleanSym.includes("ETH") || cleanSym.includes("SOL") || cleanSym.includes("XRP") || cleanSym.includes("DOGE") || cleanSym.includes("BNB") || cleanSym.includes("ADA") || cleanSym.includes("AVAX") || cleanSym.includes("DOT") || cleanSym.includes("LINK") || cleanSym.endsWith("USD") || cleanSym.endsWith("USDT");
+      const isUsStock = ["AAPL", "NVDA", "TSLA", "MSFT", "AMZN", "GOOGL", "META"].includes(cleanSym);
+      const isCommodity = cleanSym.includes("CRUDE") || cleanSym.includes("GOLD") || cleanSym.includes("SILVER") || cleanSym.includes("NATURAL") || cleanSym.includes("COPPER") || cleanSym.includes("CL=") || cleanSym.includes("GC=") || cleanSym.includes("SI=") || cleanSym.includes("NG=");
+      const exchange = (req.query.exchange as string) || (isCrypto ? "CRYPTO" : (isUsStock ? "NASDAQ" : (isCommodity ? "MCX" : "NSE")));
+      const interval = (req.query.interval as any) || "FIVE_MINUTE";
+      const { angelOneSmartApiEngine } = await import("./lib/angelOneSmartApiEngine.js");
+      const { stockResearchEngine } = await import("./lib/stockEngine.js");
+
+      let candles: any[] = [];
+
+      // A. Real 100% Authentic Crypto & US Stock Candles (Bitstamp/Yahoo/Coinbase)
+      if (isCrypto || isUsStock) {
+        try {
+          const tfMap: Record<string, { range: string; interval: string }> = {
+            "ONE_MINUTE": { range: "1d", interval: "1m" },
+            "1m": { range: "1d", interval: "1m" },
+            "FIVE_MINUTE": { range: "2d", interval: "5m" },
+            "5m": { range: "2d", interval: "5m" },
+            "FIFTEEN_MINUTE": { range: "7d", interval: "15m" },
+            "15m": { range: "7d", interval: "15m" },
+            "ONE_HOUR": { range: "30d", interval: "60m" },
+            "1H": { range: "30d", interval: "60m" },
+            "ONE_DAY": { range: "1y", interval: "1d" },
+            "1D": { range: "1y", interval: "1d" }
+          };
+          const cfg = tfMap[interval] || { range: "2d", interval: "5m" };
+          const baseSym = cleanSym.replace("USDT", "").replace("USD", "");
+          const pair = isUsStock ? cleanSym : `${baseSym}-USD`;
+
+          const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${pair}?range=${cfg.range}&interval=${cfg.interval}`;
+          const yRes = await fetch(yUrl, {
+            headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+          });
+          if (yRes.ok) {
+            const json = await yRes.json();
+            const result = json?.chart?.result?.[0];
+            const timestamps = result?.timestamp;
+            const quote = result?.indicators?.quote?.[0];
+            if (Array.isArray(timestamps) && quote) {
+              const parsed: any[] = [];
+              for (let i = 0; i < timestamps.length; i++) {
+                const o = quote.open[i];
+                const h = quote.high[i];
+                const l = quote.low[i];
+                const c = quote.close[i];
+                const v = quote.volume[i];
+                if (o != null && h != null && l != null && c != null) {
+                  const openVal = Number(o.toFixed(2));
+                  const closeVal = Number(c.toFixed(2));
+                  const highVal = Number(Math.max(h, openVal, closeVal).toFixed(2));
+                  const lowVal = Number(Math.min(l, openVal, closeVal).toFixed(2));
+
+                  parsed.push({
+                    time: new Date(timestamps[i] * 1000).toISOString().split('T')[0],
+                    timeSec: timestamps[i],
+                    open: openVal,
+                    high: highVal,
+                    low: lowVal,
+                    close: closeVal,
+                    volume: Number((v || 100).toFixed(2))
+                  });
+                }
+              }
+              if (parsed.length > 0) {
+                candles = parsed.sort((a, b) => a.timeSec - b.timeSec);
+              }
+            }
+          }
+        } catch (yErr) {
+          console.warn("[Candles API] Crypto/US Candles Fetch Error:", yErr);
+        }
+      } else {
+        // B. Angel One SmartAPI Candles for NSE / MCX / BSE
+        const token = angelOneSmartApiEngine.getToken(symbol, exchange);
+        candles = await angelOneSmartApiEngine.fetchCandles(token, exchange, interval);
+      }
+
+      if (!candles || candles.length === 0) {
+        // Fallback to real exchange history generator (NIFTY = 23,869.6, RELIANCE = 1,272.2)
+        candles = await stockResearchEngine.generateOHLCVHistory(symbol, 30);
+      }
+
+      res.setHeader("Content-Type", "application/json");
+      res.json({ success: true, symbol, exchange, interval, candles });
+    } catch (e: any) {
+      res.setHeader("Content-Type", "application/json");
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.get("/api/broker/angelone/expiries", async (req, res) => {
+    try {
+      const symbol = (req.query.symbol as string) || "CRUDEOIL";
+      const { angelOneSmartApiEngine } = await import("./lib/angelOneSmartApiEngine.js");
+      const contracts = angelOneSmartApiEngine.getExpiryContracts(symbol);
+      res.setHeader("Content-Type", "application/json");
+      res.json({ success: true, symbol, contracts });
+    } catch (e: any) {
+      res.setHeader("Content-Type", "application/json");
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // Zero-Latency Server-Sent Events (SSE) Realtime Tick Streaming Endpoint
+  app.get("/api/broker/ticks/stream", async (req, res) => {
+    const rawSymbol = String(req.query.symbol || "^NSEI");
+    
+    const canonicalize = (s: string) => {
+      const u = (s || "").toUpperCase().replace(".NS", "").replace(".BO", "").replace("^", "").trim();
+      if (u === "NIFTY" || u === "NIFTY50" || u === "NSEI" || u === "NIFTY-50") return "NIFTY50";
+      if (u === "BANKNIFTY" || u === "NSEBANK" || u === "NIFTYBANK") return "BANKNIFTY";
+      if (u === "SENSEX" || u === "BSESN") return "SENSEX";
+      return u;
+    };
+
+    const reqCanonical = canonicalize(rawSymbol);
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+
+    const { brokerTickEngine } = await import("./lib/brokerTickEngine.js");
+
+    const onTick = (tick: any) => {
+      if (!tick || !tick.symbol) return;
+      const tickCanonical = canonicalize(tick.symbol);
+      if (tickCanonical === reqCanonical) {
+        try {
+          res.write(`data: ${JSON.stringify({ type: "tick", ...tick })}\n\n`);
+        } catch (e) {}
+      }
+    };
+
+    brokerTickEngine.on("tick", onTick);
+
+    // Keepalive ping every 5 seconds
+    const keepAlive = setInterval(() => {
+      try {
+        res.write(`: ping\n\n`);
+      } catch (e) {}
+    }, 5000);
+
+    req.on("close", () => {
+      clearInterval(keepAlive);
+      brokerTickEngine.off("tick", onTick);
+    });
+  });
+
+  app.post("/api/broker/angelone/market-quote", async (req, res) => {
+    try {
+      const { mode, exchangeTokens } = req.body;
+      const { angelOneSmartApiEngine } = await import("./lib/angelOneSmartApiEngine.js");
+      const result = await angelOneSmartApiEngine.getMarketQuote(mode || "FULL", exchangeTokens);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.post("/api/broker/angelone/order", async (req, res) => {
+    try {
+      const { payload, isManualApproved } = req.body;
+      const { angelOneSmartApiEngine } = await import("./lib/angelOneSmartApiEngine.js");
+      const result = await angelOneSmartApiEngine.placeOrder(payload, isManualApproved);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // ────────── DELTA EXCHANGE CRYPTO API ROUTES ──────────
+  app.get("/api/broker/delta/status", async (req, res) => {
+    try {
+      const { deltaExchangeEngine } = await import("./lib/deltaExchangeEngine.js");
+      res.json({
+        success: true,
+        wsConnected: deltaExchangeEngine.isWsConnected(),
+        usdInrRate: deltaExchangeEngine.getUsdInrRate(),
+        trackedSymbolsCount: deltaExchangeEngine.getAllPrices().size,
+        productsCount: deltaExchangeEngine.getAllProducts().length
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.get("/api/broker/delta/products", async (req, res) => {
+    try {
+      const { deltaExchangeEngine } = await import("./lib/deltaExchangeEngine.js");
+      const products = deltaExchangeEngine.getAllProducts();
+      res.json({ success: true, count: products.length, products });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.get("/api/broker/delta/ticker/:symbol", async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const { deltaExchangeEngine } = await import("./lib/deltaExchangeEngine.js");
+      const priceData = deltaExchangeEngine.getLivePrice(symbol);
+      const ticker = await deltaExchangeEngine.fetchTicker(symbol);
+      res.json({
+        success: true,
+        symbol: symbol.toUpperCase(),
+        cachedPrice: priceData,
+        ticker
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.get("/api/broker/delta/candles", async (req, res) => {
+    try {
+      const symbol = (req.query.symbol as string) || "BTCUSD";
+      const resolution = (req.query.resolution as string) || "1m";
+      const { deltaExchangeEngine } = await import("./lib/deltaExchangeEngine.js");
+      const candles = await deltaExchangeEngine.fetchCandles(symbol, resolution);
+      res.json({ success: true, symbol, resolution, count: candles.length, candles });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.get("/api/broker/delta/wallet", async (req, res) => {
+    try {
+      const { deltaExchangeEngine } = await import("./lib/deltaExchangeEngine.js");
+      const balances = await deltaExchangeEngine.fetchWalletBalance();
+      res.json({ success: true, balances });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  app.post("/api/broker/delta/auto-trader/run", async (req, res) => {
+    try {
+      const { symbol } = req.body || {};
+      const { autonomousCryptoTrader } = await import("./scripts/autonomousCryptoTrader.js");
+      const sessionResult = await autonomousCryptoTrader.runAutonomousTradeSession(symbol || "BTCUSD");
+      res.json({ success: true, sessionResult });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+
+  app.get("/api/stock/:ticker/recommendation", async (req, res) => {
+    const ticker = normalizeTicker(req.params.ticker);
+    if (!ticker) return res.status(400).json({ error: "Ticker is required" });
+    try {
+      const { stockResearchEngine } = await import("./lib/stockEngine.js");
+      const force = req.query.force !== "false";
+      const category = (req.query.category as any) || "SWING_TRADER";
+      const recommendation = await stockResearchEngine.analyzeStock(ticker, force, category);
+      res.json({ success: true, recommendation });
+    } catch (error: any) {
+      console.error("[Stock API Error]", error);
+      res.status(500).json({ error: error.message || "Failed to analyze stock" });
+    }
+  });
+
+  // ─── Autonomous Decision Engine — One-Click Analysis Pipeline ───
+  app.post("/api/stock/:ticker/autonomous-analysis", async (req, res) => {
+    const ticker = normalizeTicker(req.params.ticker);
+    if (!ticker) return res.status(400).json({ error: "Ticker is required" });
+    try {
+      const { autonomousDecisionEngine } = await import("./lib/autonomousDecisionEngine.js");
+      const tradingCategory = req.body?.tradingCategory || "SWING_TRADER";
+      console.log(`[API] 🧠 Autonomous analysis triggered for ${ticker} (${tradingCategory})`);
+      const result = await autonomousDecisionEngine.analyze(ticker, tradingCategory);
+      res.json({ success: true, result });
+    } catch (error: any) {
+      console.error("[Autonomous Decision Engine Error]", error);
+      res.status(500).json({ error: error.message || "Decision engine failed" });
+    }
+  });
+
+  app.get("/api/stock/:ticker/price-history", async (req, res) => {
+    const ticker = normalizeTicker(req.params.ticker);
+    const days = Number(req.query.days) || 90;
+    if (!ticker) return res.status(400).json({ error: "Ticker is required" });
+    try {
+      const { stockResearchEngine } = await import("./lib/stockEngine.js");
+      const history = await stockResearchEngine.generateOHLCVHistory(ticker, days);
+      res.json({ success: true, ticker, history });
+    } catch (error: any) {
+      console.error("[Stock Price History Error]", error);
+      res.status(500).json({ error: error.message || "Failed to fetch price history" });
+    }
+  });
+
+  app.get("/api/stock/chart", async (req, res) => {
+    const symbol = String(req.query.symbol || "^NSEI").toUpperCase().trim();
+    const range = String(req.query.range || "3mo");
+    const interval = String(req.query.interval || "1d");
+
+    const targetUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
+
+    try {
+      const response = await fetch(targetUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        return res.json({ success: true, json, isReal: true });
+      }
+      return res.status(response.status).json({ error: "Failed to fetch from Yahoo Finance" });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Proxy error" });
+    }
+  });
+
+  app.get("/api/stock/search", async (req, res) => {
+    const query = String(req.query.q || "");
+    try {
+      const { stockResearchEngine } = await import("./lib/stockEngine.js");
+      const results = await stockResearchEngine.searchTickers(query);
+      res.json({ success: true, results });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Search failed" });
+    }
+  });
+
+  app.post("/api/stock/:ticker/chat", async (req, res) => {
+    const { ticker } = req.params;
+    const { message, recommendation } = req.body;
+    if (!message) return res.status(400).json({ error: "Message is required" });
+    try {
+      const { stockResearchEngine } = await import("./lib/stockEngine.js");
+      const rec = recommendation || await stockResearchEngine.analyzeStock(ticker);
+      const reply = await stockResearchEngine.chatWithAnalyst(ticker, message, rec);
+      res.json({ success: true, reply });
+    } catch (error: any) {
+      console.error("[Stock Chat Error]", error);
+      res.status(500).json({ error: error.message || "Failed to process chat" });
+    }
+  });
+
+  // Defensive URI Sanitization Middleware to prevent decodeURI malformed crashes in Vite
+  app.use((req, res, next) => {
+    try {
+      if (req.url) {
+        decodeURI(req.url);
+      }
+    } catch (e) {
+      req.url = req.url.replace(/%(?![0-9A-Fa-f]{2})/g, "%25");
+    }
+    next();
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -2061,9 +2608,61 @@ const safeMoveVideo = async (src: string, dest: string, retries = 5, delay = 500
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  const portNumber = Number(process.env.PORT) || 3001;
+  const server = app.listen(portNumber, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${portNumber}`);
+  });
+
+  // FASTAPI / EXPRESS WEBSOCKET ENDPOINT (/ws/candles?symbol=RELIANCE&timeframe=5m)
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on("upgrade", (request, socket, head) => {
+    const pathname = request.url?.split("?")[0];
+    if (pathname === "/ws/candles") {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit("connection", ws, request);
+      });
+    }
+  });
+
+  wss.on("connection", (ws: WebSocket, req) => {
+    const urlParams = new URLSearchParams(req.url?.split("?")[1] || "");
+    const symbol = (urlParams.get("symbol") || "^NSEI").toUpperCase();
+    const timeframe = urlParams.get("timeframe") || "5m";
+
+    console.log(`[WebSocket Server] 🔌 Client connected for symbol: ${symbol} (${timeframe})`);
+
+    // 1. Send last ~100 historical candles first so chart is never empty on load
+    const history = brokerTickEngine.getHistoricalCandles(symbol, timeframe);
+    ws.send(JSON.stringify({
+      type: "HISTORICAL_BACKFILL",
+      symbol,
+      timeframe,
+      bars: history
+    }));
+
+    // 2. Stream live tick/candle updates in real time
+    const onCandleUpdate = (data: any) => {
+      if (data.symbol === symbol && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
+      }
+    };
+
+    brokerTickEngine.on("candle_update", onCandleUpdate);
+
+    ws.on("close", () => {
+      console.log(`[WebSocket Server] ❌ Client disconnected for symbol: ${symbol}`);
+      brokerTickEngine.off("candle_update", onCandleUpdate);
+    });
   });
 }
+
+process.on("uncaughtException", (err) => {
+  console.error("[Server Process] ⚠️ Uncaught Exception caught (preventing crash):", err?.message || err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[Server Process] ⚠️ Unhandled Rejection caught (preventing crash):", reason);
+});
 
 startServer();

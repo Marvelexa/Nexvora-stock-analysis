@@ -86,6 +86,25 @@ const MENU_ITEMS = [
 ];
 
 export default function Menu({ onAddToCart }: { onAddToCart: (item: any) => void }) {
+  // Read real business photos from Google Maps (passed via query params)
+  const getPhotosFromParams = (): string[] => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('photos');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  };
+  const mapsPhotos = getPhotosFromParams();
+  const foodPhotos = mapsPhotos.slice(1);
+
+  const getMenuItems = () => {
+    return MENU_ITEMS.map((item, index) => ({
+      ...item,
+      image: (foodPhotos.length > 0 && foodPhotos[index % foodPhotos.length]) || item.image
+    }));
+  };
+  const menuItems = getMenuItems();
+
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -139,7 +158,7 @@ export default function Menu({ onAddToCart }: { onAddToCart: (item: any) => void
         <div 
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 xl:gap-8 pb-10 pt-10 w-full max-w-[1600px] mx-auto px-4 items-start"
         >
-          {MENU_ITEMS.map((item, index) => {
+          {menuItems.map((item, index) => {
             const isActive = activeIndex === index;
 
             return (
@@ -169,6 +188,7 @@ export default function Menu({ onAddToCart }: { onAddToCart: (item: any) => void
                        <img 
                          src={item.image} 
                          alt={item.name}
+                         referrerPolicy="no-referrer"
                          className={`max-h-full max-w-full ${!item.image.includes('ik.imagekit.io') ? 'object-cover w-full h-full' : 'object-contain'} rounded-xl drop-shadow-md`}
                        />
                     </motion.div>

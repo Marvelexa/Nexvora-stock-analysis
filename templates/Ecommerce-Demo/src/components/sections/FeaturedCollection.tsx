@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useStore } from "@/store/useStore";
 
 interface CategoryCard {
@@ -11,7 +11,7 @@ interface CategoryCard {
   color: string;
 }
 
-const CATEGORIES: CategoryCard[] = [
+const DEFAULT_CATEGORIES: CategoryCard[] = [
   {
     id: "Night Suit",
     name: "Cotton & Silk Night Suits",
@@ -44,10 +44,29 @@ const CATEGORIES: CategoryCard[] = [
 
 export default function FeaturedCollection() {
   const { activeCategory, setActiveCategory } = useStore();
+  const [categories, setCategories] = useState<CategoryCard[]>(DEFAULT_CATEGORIES);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const rawPhotos = searchParams.get('photos');
+
+      if (rawPhotos) {
+        const photos: string[] = JSON.parse(rawPhotos);
+        if (Array.isArray(photos) && photos.length > 0) {
+          const updated = DEFAULT_CATEGORIES.map((cat, idx) => ({
+            ...cat,
+            image: photos[idx % photos.length] || cat.image
+          }));
+          setCategories(updated);
+        }
+      }
+    } catch {}
+  }, []);
 
   const handleCategorySelect = (id: string) => {
     setActiveCategory(id === activeCategory ? "All" : id);
-    // Scroll down to the best sellers grid to see filtered products
     const grid = document.getElementById("catalog-grid");
     grid?.scrollIntoView({ behavior: "smooth" });
   };
@@ -74,7 +93,7 @@ export default function FeaturedCollection() {
 
         {/* Categories Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const isSelected = activeCategory === cat.id;
             return (
               <div
@@ -92,6 +111,7 @@ export default function FeaturedCollection() {
                     src={cat.image}
                     className="w-full h-full object-cover brightness-[0.4] group-hover:scale-105 transition-transform duration-700"
                     alt={cat.name}
+                    referrerPolicy="no-referrer"
                   />
                   <div className={`absolute inset-0 bg-gradient-to-t ${cat.color} opacity-40`} />
                 </div>

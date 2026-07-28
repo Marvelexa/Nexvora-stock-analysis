@@ -15,7 +15,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: 'A5 Grade Wagyu beef served with truffle mashed potatoes and glazed carrots.',
     price: '$85',
     category: 'main',
-    image: 'https://images.unsplash.com/photo-1546241072-48010ad28fac?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&q=80&w=800',
     isPopular: true,
     isChefSpecial: true,
   },
@@ -25,7 +25,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: 'Creamy Arborio rice with fresh lobster chunks and black truffle shavings.',
     price: '$65',
     category: 'main',
-    image: 'https://images.unsplash.com/photo-1534422298391-e4f8c170db06?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&q=80&w=800',
     isPopular: true,
   },
   {
@@ -75,7 +75,7 @@ export const MENU_ITEMS: MenuItem[] = [
     description: 'Slow-cooked duck leg with cherry reduction and parsnip puree.',
     price: '$48',
     category: 'main',
-    image: 'https://images.unsplash.com/photo-1511910849591-38290e4fba6a?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800',
   }
 ];
 

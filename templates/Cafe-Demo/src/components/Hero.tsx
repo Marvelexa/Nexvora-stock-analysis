@@ -2,13 +2,24 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { Truck } from 'lucide-react';
 
-const THUMBNAILS = [
-  "https://ik.imagekit.io/nwcatqsgu/51820b5b4bc4c7333fa9096b124c6480-Photoroom.png",
-  "https://ik.imagekit.io/nwcatqsgu/ac4382d8-b915-4bb7-9702-3dcf083b1402-Photoroom.png",
-  "https://ik.imagekit.io/nwcatqsgu/594848b5-c354-43e4-a433-d10c35d60a48-Photoroom.png"
-];
 
 export default function Hero() {
+  // Read real business photos from Google Maps (passed via query params)
+  const getPhotosFromParams = (): string[] => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('photos');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  };
+  const mapsPhotos = getPhotosFromParams();
+
+  const THUMBNAILS = [
+    mapsPhotos[0] || "https://ik.imagekit.io/nwcatqsgu/51820b5b4bc4c7333fa9096b124c6480-Photoroom.png",
+    mapsPhotos[1] || "https://ik.imagekit.io/nwcatqsgu/ac4382d8-b915-4bb7-9702-3dcf083b1402-Photoroom.png",
+    mapsPhotos[2] || "https://ik.imagekit.io/nwcatqsgu/594848b5-c354-43e4-a433-d10c35d60a48-Photoroom.png"
+  ];
+
   const targetRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: targetRef,
@@ -110,7 +121,7 @@ export default function Hero() {
                <div className="flex gap-2 sm:gap-3 lg:gap-4">
                   {THUMBNAILS.map((src, idx) => (
                     <div key={idx} className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-xl lg:rounded-2xl bg-white border-[3px] lg:border-4 border-transparent hover:border-accent transition-all duration-300 overflow-hidden flex items-center justify-center p-1 sm:p-2 cursor-pointer shadow-xl group">
-                       <img src={src} className="w-full h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-500" alt={`Coffee type ${idx + 1}`} />
+                       <img src={src} referrerPolicy="no-referrer" className={mapsPhotos[idx] ? "object-cover w-full h-full rounded-xl drop-shadow-md group-hover:scale-110 transition-transform duration-500" : "w-full h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-500"} alt={`Coffee type ${idx + 1}`} />
                     </div>
                   ))}
                </div>
@@ -136,9 +147,10 @@ export default function Hero() {
                    transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
                  >
                    <img
-                     src="https://ik.imagekit.io/nwcatqsgu/51820b5b4bc4c7333fa9096b124c6480-Photoroom.png"
+                     src={mapsPhotos[0] || "https://ik.imagekit.io/nwcatqsgu/51820b5b4bc4c7333fa9096b124c6480-Photoroom.png"}
                      alt="Featured Artisanal Matcha Frappuccino"
-                     className="w-full h-auto object-contain object-center scale-100 drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]"
+                     referrerPolicy="no-referrer"
+                     className={mapsPhotos[0] ? "object-cover w-full h-full rounded-xl drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]" : "w-full h-auto object-contain object-center scale-100 drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]"}
                    />
                  </motion.div>
                </motion.div>
@@ -152,9 +164,10 @@ export default function Hero() {
                    transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
                  >
                    <img
-                     src="https://ik.imagekit.io/nwcatqsgu/594848b5-c354-43e4-a433-d10c35d60a48-Photoroom.png"
+                     src={mapsPhotos[2] || "https://ik.imagekit.io/nwcatqsgu/594848b5-c354-43e4-a433-d10c35d60a48-Photoroom.png"}
                      alt="Featured Artisanal Pink Drink"
-                     className="w-full h-auto object-contain object-center scale-100 drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]"
+                     referrerPolicy="no-referrer"
+                     className={mapsPhotos[2] ? "object-cover w-full h-full rounded-xl drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]" : "w-full h-auto object-contain object-center scale-100 drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]"}
                    />
                  </motion.div>
                </motion.div>
@@ -168,9 +181,10 @@ export default function Hero() {
                    transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
                  >
                    <img
-                     src="https://ik.imagekit.io/nwcatqsgu/ac4382d8-b915-4bb7-9702-3dcf083b1402-Photoroom.png"
+                     src={mapsPhotos[1] || "https://ik.imagekit.io/nwcatqsgu/ac4382d8-b915-4bb7-9702-3dcf083b1402-Photoroom.png"}
                      alt="Featured Artisanal Frappuccino"
-                     className="w-full h-auto object-contain object-center scale-100 drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]"
+                     referrerPolicy="no-referrer"
+                     className={mapsPhotos[1] ? "object-cover w-full h-full rounded-xl drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]" : "w-full h-auto object-contain object-center scale-100 drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)]"}
                    />
                  </motion.div>
                </motion.div>

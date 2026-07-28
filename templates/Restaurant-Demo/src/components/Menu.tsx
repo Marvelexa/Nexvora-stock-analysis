@@ -7,9 +7,82 @@ import { ShoppingCart, Star, Plus } from 'lucide-react';
 export default function MenuSection() {
   const [activeCategory, setActiveCategory] = useState('all');
 
+  const getSearchParam = (key: string): string => {
+    try {
+      return new URLSearchParams(window.location.search).get(key) || '';
+    } catch {}
+    return '';
+  };
+
+  const nameParam = getSearchParam('name').toLowerCase();
+  const categoryParam = getSearchParam('category').toLowerCase();
+  const fullText = `${nameParam} ${categoryParam}`;
+
+  const getPhotosFromParams = (): string[] => {
+    try {
+      const raw = getSearchParam('photos');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  };
+  const mapsPhotos = getPhotosFromParams();
+  // Storefront cover photo is mapsPhotos[0]; real food/dish photos are mapsPhotos.slice(1)
+  const foodPhotos = mapsPhotos.slice(1);
+
+  // Dynamic Cuisine Dish Items based on Business Category & Name
+  const getCuisineMenuItems = () => {
+    const isIndian = fullText.includes('indian') || fullText.includes('desi') || fullText.includes('spice') || 
+                     fullText.includes('curry') || fullText.includes('biryani') || fullText.includes('tikka') || 
+                     fullText.includes('pakistani') || fullText.includes('masala') || fullText.includes('punjabi');
+    
+    const isArabic = fullText.includes('mandi') || fullText.includes('kabsa') || fullText.includes('arabic') || 
+                     fullText.includes('grill') || fullText.includes('lebanese') || fullText.includes('shawarma') || 
+                     fullText.includes('middle eastern') || fullText.includes('kebab');
+
+    const isCafe = fullText.includes('cafe') || fullText.includes('coffee') || fullText.includes('bakery') || 
+                   fullText.includes('patisserie') || fullText.includes('tea') || fullText.includes('matcha');
+
+    if (isIndian) {
+      return [
+        { id: 1, name: 'Banarasi Dum Aloo', price: 12, category: 'mains', description: 'Slow-cooked baby potatoes in rich spiced tomato & yogurt gravy.', image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&q=80&w=800' },
+        { id: 2, name: 'Palak Paneer Special', price: 14, category: 'mains', description: 'Fresh cottage cheese cubes in smooth spinach puree with garlic & butter.', image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&q=80&w=800' },
+        { id: 3, name: 'Shahi Butter Chicken', price: 18, category: 'mains', description: 'Tender tandoori chicken pieces in velvety creamy tomato butter gravy.', image: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&q=80&w=800' },
+        { id: 4, name: 'Paneer Butter Masala', price: 15, category: 'mains', description: 'Cottage cheese simmered with sweet onions, cashews and fragrant spices.', image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&q=80&w=800' },
+        { id: 5, name: 'Special Dum Biryani', price: 16, category: 'mains', description: 'Fragrant long-grain basmati rice layered with aromatic spices and saffron.', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&q=80&w=800' },
+        { id: 6, name: 'Garlic Butter Naan', price: 4, category: 'starters', description: 'Freshly baked clay oven naan topped with minced garlic & melted butter.', image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?auto=format&fit=crop&q=80&w=800' },
+        { id: 7, name: 'Dal Makhani Supreme', price: 13, category: 'mains', description: 'Black lentils slow-cooked overnight with cream, butter and fresh coriander.', image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&q=80&w=800' },
+        { id: 8, name: 'Samosa Chaat Platter', price: 10, category: 'starters', description: 'Crispy samosas crushed and layered with chickpea curry, chutneys & yogurt.', image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&q=80&w=800' }
+      ];
+    }
+
+    if (isArabic) {
+      return [
+        { id: 1, name: 'Signature Chicken Mandi', price: 18, category: 'mains', description: 'Slow-cooked tender chicken served over fragrant long-grain mandi rice.', image: 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&q=80&w=800' },
+        { id: 2, name: 'Special Lamb Kabsa', price: 22, category: 'mains', description: 'Succulent lamb shank braised with cardamom, cinnamon and Arabian spices.', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800' },
+        { id: 3, name: 'Royal Mixed Grill Platter', price: 26, category: 'mains', description: 'Juicy lamb kebab, shish tawook and lamb chops served with garlic dip.', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=800' },
+        { id: 4, name: 'Hummus & Warm Pita', price: 9, category: 'starters', description: 'Smooth chickpea puree topped with extra virgin olive oil and paprika.', image: 'https://images.unsplash.com/photo-1577906096429-f73c2c312435?auto=format&fit=crop&q=80&w=800' },
+        { id: 5, name: 'Mutabbal & Baba Ghanoush', price: 10, category: 'starters', description: 'Smokey eggplant dip blended with tahini and pomegranate seeds.', image: 'https://images.unsplash.com/photo-1541518763669-27fef04b14da?auto=format&fit=crop&q=80&w=800' },
+        { id: 6, name: 'Golden Cheese Kunafa', price: 12, category: 'desserts', description: 'Crispy shredded pastry baked with sweet cheese and orange blossom syrup.', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&q=80&w=800' }
+      ];
+    }
+
+    if (isCafe) {
+      return [
+        { id: 1, name: 'Artisanal Spanish Latte', price: 6, category: 'drinks', description: 'Rich espresso blended with condensed milk and steamed velvet milk.', image: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&q=80&w=800' },
+        { id: 2, name: 'Signature Cold Brew', price: 5, category: 'drinks', description: 'Slow-steeped custom coffee blend served over ice with subtle chocolate notes.', image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=800' },
+        { id: 3, name: 'Matcha Green Tea Latte', price: 6, category: 'drinks', description: 'Premium Japanese ceremonial matcha whisked with steamed oat milk.', image: 'https://images.unsplash.com/photo-1536935338788-846bb9981813?auto=format&fit=crop&q=80&w=800' },
+        { id: 4, name: 'Butter Croissant & Jam', price: 4, category: 'starters', description: 'Flaky golden croissant baked fresh daily, served with berry jam.', image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&q=80&w=800' }
+      ];
+    }
+
+    return MENU_ITEMS;
+  };
+
+  const dynamicMenuItems = getCuisineMenuItems();
+
   const filteredItems = activeCategory === 'all' 
-    ? MENU_ITEMS 
-    : MENU_ITEMS.filter(item => item.category === activeCategory);
+    ? dynamicMenuItems 
+    : dynamicMenuItems.filter(item => item.category === activeCategory);
 
   return (
     <section id="menu" className="bg-brand-cream py-32 px-4 md:px-12 overflow-hidden">
@@ -78,8 +151,13 @@ export default function MenuSection() {
                 {/* Image Container */}
                 <div className="relative aspect-square rounded-[2.5rem] overflow-hidden mb-8">
                   <img 
-                    src={item.image} 
+                    src={(foodPhotos.length > 0 && foodPhotos[idx % foodPhotos.length]) || item.image} 
                     alt={item.name} 
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).onerror = null;
+                      (e.target as HTMLImageElement).src = item.image;
+                    }}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                   
@@ -119,7 +197,7 @@ export default function MenuSection() {
                     <div className="flex -space-x-2">
                       {[1,2,3].map(i => (
                         <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-brand-cream overflow-hidden">
-                          <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="user" />
+                          <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="user" referrerPolicy="no-referrer" />
                         </div>
                       ))}
                       <div className="w-8 h-8 rounded-full border-2 border-white bg-brand-orange flex items-center justify-center text-[8px] font-black text-white">

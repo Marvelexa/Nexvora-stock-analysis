@@ -1,61 +1,17 @@
-import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { User } from "firebase/auth";
-import { initAuth, googleSignIn, logout } from "./lib/firebase";
-
-import { Landing } from "./pages/Landing";
-import { SystemFlow } from "./pages/SystemFlow";
-import { LeadPipeline } from "./pages/LeadPipeline";
-import { LeadDiscovery } from "./pages/LeadDiscovery";
-import { LeadverseGuide } from "./pages/LeadverseGuide";
-import { LoadingScreen } from "./components/LoadingScreen";
+import { StockAnalysis } from "./pages/StockAnalysis";
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [showLoading, setShowLoading] = useState(true);
-
-  useEffect(() => {
-    const fallbackTimer = setTimeout(() => {
-      setShowLoading(false);
-    }, 2500);
-
-    const unsubscribe = initAuth(
-      (currentUser) => {
-        setUser(currentUser);
-      },
-      () => {
-        setUser(null);
-      }
-    );
-    return () => {
-      clearTimeout(fallbackTimer);
-      unsubscribe();
-    };
-  }, []);
-
   return (
-    <>
-      {showLoading && (
-        <LoadingScreen 
-          businessName="Freelance Goldmine" 
-          onFinished={() => setShowLoading(false)} 
-        />
-      )}
-      <BrowserRouter>
-        <div className="min-h-screen w-full bg-dot-pattern flex flex-col font-sans text-[#111]">
-          <main className="flex-1 flex flex-col h-full items-center justify-center relative overflow-hidden">
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/system" element={<SystemFlow />} />
-              <Route path="/pipeline" element={<LeadPipeline />} />
-              <Route path="/discovery" element={<LeadDiscovery />} />
-              <Route path="/leadverse" element={<LeadverseGuide />} />
-            </Routes>
-          </main>
-        </div>
-      </BrowserRouter>
-    </>
+    <BrowserRouter>
+      <div className="min-h-screen w-full bg-[#090d16] text-slate-100 flex flex-col font-sans">
+        <Routes>
+          {/* Nexvora AI Stock Research Analyst as Primary Main Application */}
+          <Route path="/" element={<StockAnalysis />} />
+          <Route path="/stock" element={<StockAnalysis />} />
+          <Route path="/stock/:ticker" element={<StockAnalysis />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
-
-

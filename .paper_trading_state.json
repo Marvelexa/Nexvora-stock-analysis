@@ -1,0 +1,38 @@
+{
+  "initialCapital": 1000000,
+  "cashBalance": 197151.18113500008,
+  "openPositions": [
+    {
+      "id": "POS-1785069305514-5700",
+      "ticker": "BTCUSD",
+      "companyName": "Bitcoin",
+      "type": "SELL",
+      "quantity": 0.1415,
+      "entryPrice": 64506.94,
+      "stopLossPrice": 66100,
+      "targetPrice": 62800,
+      "currentPrice": 64506.94,
+      "unrealizedPnL": 0,
+      "unrealizedPnLPct": 0,
+      "currency": "USD",
+      "timestamp": "2026-07-26 12:35"
+    },
+    {
+      "id": "POS-1785068842203-2408",
+      "ticker": "RELIANCE",
+      "companyName": "Reliance Industries",
+      "type": "BUY",
+      "quantity": 10,
+      "entryPrice": 1330,
+      "stopLossPrice": 1310,
+      "targetPrice": 1360,
+      "currentPrice": 1330,
+      "unrealizedPnL": 0,
+      "unrealizedPnLPct": 0,
+      "currency": "INR",
+      "timestamp": "2026-07-26 12:27"
+    }
+  ],
+  "closedTrades": [],
+  "autoRiskGuardianActive": true
+}

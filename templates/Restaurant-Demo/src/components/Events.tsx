@@ -3,6 +3,16 @@ import { Calendar, Users, Music, Wine, ArrowRight } from 'lucide-react';
 import { EVENTS } from '../constants';
 
 export default function EventsAndPrivateDining() {
+  const getPhotosFromParams = (): string[] => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('photos');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  };
+  const mapsPhotos = getPhotosFromParams();
+  const storefrontPhoto = mapsPhotos[0];
+
   return (
     <section className="bg-brand-cream py-32 px-4 md:px-12 relative overflow-hidden">
       <div className="max-w-[1700px] mx-auto relative z-10">
@@ -32,7 +42,8 @@ export default function EventsAndPrivateDining() {
                 <img 
                   src={event.image} 
                   className="w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-110" 
-                  alt={event.title} 
+                  alt={event.title}
+                  referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-brown via-brand-brown/20 to-transparent" />
                 <div className="absolute inset-0 p-10 flex flex-col justify-end transform transition-transform duration-500 group-hover:translate-y-[-10px]">
@@ -101,9 +112,14 @@ export default function EventsAndPrivateDining() {
                 className="rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(45,27,20,0.2)] relative z-20 border-[20px] border-brand-cream"
               >
                 <img 
-                  src="https://images.unsplash.com/photo-1544124499-58912cbddaad?auto=format&fit=crop&q=80&w=800" 
+                  src={storefrontPhoto || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=800'} 
                   className="w-full h-[600px] object-cover"
-                  alt="Private Dining Sanctuary"
+                  alt="Restaurant Front View"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).onerror = null;
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=800';
+                  }}
                 />
               </motion.div>
               <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-brand-red rounded-[3rem] p-8 text-white shadow-2xl hidden md:flex flex-col justify-between z-30">

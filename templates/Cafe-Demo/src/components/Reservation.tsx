@@ -38,6 +38,7 @@ export default function Reservation() {
             <img 
               src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1000&h=1200" 
               alt="Cafe ambiance" 
+              referrerPolicy="no-referrer"
               className="absolute inset-0 w-full h-full object-cover"
             />
             {/* Info Overlay */}

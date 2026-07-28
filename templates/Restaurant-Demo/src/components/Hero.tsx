@@ -24,6 +24,16 @@ const HERO_DISHES = [
 ];
 
 export default function Hero() {
+  const getPhotosFromParams = (): string[] => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('photos');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  };
+  const mapsPhotos = getPhotosFromParams();
+  const foodPhotos = mapsPhotos.slice(1);
+
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -162,9 +172,14 @@ export default function Hero() {
                 >
                   <div className="w-full h-full rounded-full overflow-hidden border-[15px] border-white/40 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)]">
                     <img 
-                      src={currentDish.image} 
+                      src={(foodPhotos.length > 0 && foodPhotos[index % foodPhotos.length]) || currentDish.image} 
                       className="w-full h-full object-cover"
                       alt={currentDish.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).onerror = null;
+                        (e.target as HTMLImageElement).src = currentDish.image;
+                      }}
                     />
                   </div>
                   
@@ -203,7 +218,7 @@ export default function Hero() {
                         }}
                         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full overflow-hidden border-8 border-white/20"
                       >
-                        <img src={dish.image} className="w-full h-full object-cover" alt="Orbiting Dish" />
+                        <img src={(foodPhotos.length > 0 && foodPhotos[i % foodPhotos.length]) || dish.image} className="w-full h-full object-cover" alt="Orbiting Dish" referrerPolicy="no-referrer" />
                       </motion.div>
                     );
                   })}
@@ -214,7 +229,7 @@ export default function Hero() {
 
             {/* Decorative items */}
             <div className="absolute top-0 right-0 opacity-10 blur-[1px] pointer-events-none rotate-45 scale-150">
-              <img src="https://images.unsplash.com/photo-1597362925123-77861d3fbac7?auto=format&fit=crop&q=80&w=400" className="w-40 h-40" alt="Veggie" />
+              <img src={mapsPhotos[0] || "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?auto=format&fit=crop&q=80&w=400"} className="w-40 h-40" alt="Veggie" referrerPolicy="no-referrer" />
             </div>
           </div>
         </div>
