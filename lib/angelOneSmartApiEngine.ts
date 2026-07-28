@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { generateTOTP } from "./totpGenerator";
 import { OHLCVBar } from "./stockEngine";
+import { requireCredential } from "./credentials";
 
 export interface AngelOneCredentials {
   apiKey: string;
@@ -541,7 +542,7 @@ export class AngelOneSmartApiEngine {
           "Content-Type": "application/json",
           "Accept": "application/json",
           "Authorization": `Bearer ${this.session.jwtToken}`,
-          "X-PrivateKey": process.env.ANGEL_ONE_API_KEY || "at0UVM6C",
+          "X-PrivateKey": requireCredential("ANGEL_ONE_API_KEY", "Angel One SmartAPI requests"),
           "X-UserType": "USER",
           "X-SourceID": "WEB",
           "X-ClientLocalIP": "127.0.0.1",
@@ -597,7 +598,7 @@ export class AngelOneSmartApiEngine {
           "Content-Type": "application/json",
           "Accept": "application/json",
           "Authorization": `Bearer ${this.session.jwtToken}`,
-          "X-PrivateKey": process.env.ANGEL_ONE_API_KEY || "at0UVM6C",
+          "X-PrivateKey": requireCredential("ANGEL_ONE_API_KEY", "Angel One SmartAPI requests"),
           "X-UserType": "USER",
           "X-SourceID": "WEB",
           "X-ClientLocalIP": "127.0.0.1",
@@ -653,7 +654,7 @@ export class AngelOneSmartApiEngine {
           "Content-Type": "application/json",
           "Accept": "application/json",
           "Authorization": `Bearer ${this.session.jwtToken}`,
-          "X-PrivateKey": "dummy_key",
+          "X-PrivateKey": requireCredential("ANGEL_ONE_API_KEY", "Angel One live order placement"),
           "X-UserType": "USER",
           "X-SourceID": "WEB",
           "X-ClientLocalIP": "127.0.0.1",
@@ -734,7 +735,7 @@ export class AngelOneSmartApiEngine {
       this.ws = new WebSocket(wsUrl, {
         headers: {
           "Authorization": `Bearer ${this.session.jwtToken}`,
-          "x-api-key": process.env.ANGEL_ONE_API_KEY || "at0UVM6C",
+          "x-api-key": requireCredential("ANGEL_ONE_API_KEY", "the Angel One SmartAPI market data websocket"),
           "x-client-code": this.session.clientCode,
           "x-feed-token": this.session.feedToken
         }

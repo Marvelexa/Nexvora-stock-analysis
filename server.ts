@@ -244,7 +244,7 @@ async function tryOpenCode(contents: string, systemInstruction?: string, modelOv
 }
 
 async function tryNvidia(contents: string, systemInstruction?: string, modelOverride?: string): Promise<{ text: string }> {
-  const nvidiaApiKey = process.env.NVIDIA_API_KEY || "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";
+  const nvidiaApiKey = process.env.NVIDIA_API_KEY?.trim();
   const nvidiaBaseUrl = process.env.NVIDIA_API_BASE_URL || "https://integrate.api.nvidia.com/v1";
   const nvidiaModel = modelOverride || process.env.NVIDIA_MODEL_NAME || "minimaxai/minimax-m2.7";
 

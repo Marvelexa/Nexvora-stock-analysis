@@ -1,8 +1,11 @@
 /**
  * NEXVORA NEMTRON 3 ULTRA AI ENGINE
  * Master Quantitative & Deep Reasoning AI Model Integration
- * API Key: sk-KEvoHidhhboDWx4PLLDzXTiABSEJlghBoeWs4WP4A8O9hTVpXHy7cu7yUf11KByX
+ *
+ * Credentials come from OPENCODE_API_KEY in the environment. Never inline a key here.
  */
+
+import { optionalCredential } from "./credentials";
 
 export interface NemtronAnalysisResult {
   symbol: string;
@@ -52,14 +55,16 @@ You possess complete mastery over the following 7 Core Financial Frameworks:
    - Higher-High Higher-Low vs Lower-High Lower-Low alignment across Indian F&O (NIFTY50, BANKNIFTY, RELIANCE, TCS, INFY) and Crypto (BTCUSD, ETHUSD, SOLUSD).`;
 
 export class NemtronEngine {
-  private apiKey: string;
+  private apiKey: string | null;
   private baseUrl: string;
   private modelName: string;
 
   constructor() {
-    this.apiKey = process.env.OPENCODE_API_KEY || "sk-KEvoHidhhboDWx4PLLDzXTiABSEJlghBoeWs4WP4A8O9hTVpXHy7cu7yUf11KByX";
-    this.baseUrl = process.env.OPENCODE_API_BASE_URL || "https://opencode.ai/zen/v1";
-    this.modelName = process.env.OPENCODE_MODEL_NAME || "nemtron-3-ultra";
+    // Optional, not required: a missing key must leave the LLM layer unavailable rather
+    // than throw at construction time (this engine is instantiated at module load).
+    this.apiKey = optionalCredential("OPENCODE_API_KEY");
+    this.baseUrl = process.env.OPENCODE_API_BASE_URL?.trim() || "https://opencode.ai/zen/v1";
+    this.modelName = process.env.OPENCODE_MODEL_NAME?.trim() || "nemtron-3-ultra";
   }
 
   /**
