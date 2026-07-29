@@ -548,7 +548,24 @@ export class AITradingBrainEngine {
       logisticTransformedProbPct: logisticProb,
       calibrationEquation: "P(Win) = 1 / (1 + exp(-((CompositeScore - 50) / 15)))",
       finalBuyProbabilityPct: buyWinProbabilityPct,
-      finalSellProbabilityPct: sellWinProbabilityPct
+      finalSellProbabilityPct: sellWinProbabilityPct,
+      // Full intermediate sub-scores chain for end-to-end mathematical audit
+      intermediateSubScores: {
+        patternDriverScore: Number(patternDriverScore.toFixed(2)),
+        rsiContribution: Number(rsiContribution.toFixed(2)),
+        emaContribution: Number(emaContribution.toFixed(2)),
+        candleContribution: Number(candleContribution.toFixed(2)),
+        volContribution: Number(volContribution.toFixed(2)),
+        baseContinuousScore: Number(baseContinuousScore.toFixed(2)),
+        tickMomentumBonus: Number(tickMomentumBonus.toFixed(2)),
+        continuousScore: Number(continuousScore.toFixed(2)),
+        techScore: Number(techScore.toFixed(2)),
+        sentScore: Number(sentScore.toFixed(2)),
+        fundScore: Number(fundScore.toFixed(2)),
+        oiScore: Number(oiScore.toFixed(2)),
+        macroScore: Number(macroScore.toFixed(2)),
+        compositeScore: Number(rawTrendScore.toFixed(2))
+      }
     };
 
     let probabilityEdgeText = "";
