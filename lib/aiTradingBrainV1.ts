@@ -475,8 +475,8 @@ export class AITradingBrainEngine {
     const isPriceBreakingLows = currentPrice <= (lastBar?.low || currentPrice);
 
     // If price is pushing new highs, discount static bearish patterns; if breaking lows, discount bullish patterns
-    const rawMaxBearWinRate = bearPatterns.length > 0 ? Math.max(...bearPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
-    const rawMaxBullWinRate = bullPatterns.length > 0 ? Math.max(...bullPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 75))) : 0;
+    const rawMaxBearWinRate = bearPatterns.length > 0 ? Math.max(...bearPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 50))) : 0;
+    const rawMaxBullWinRate = bullPatterns.length > 0 ? Math.max(...bullPatterns.map(p => (p.historicalWinRatePct || (p as any).winRatePct || 50))) : 0;
 
     const maxBearWinRate = isPricePushingHighs ? Math.max(0, rawMaxBearWinRate - 35) : rawMaxBearWinRate;
     const maxBullWinRate = isPriceBreakingLows ? Math.max(0, rawMaxBullWinRate - 35) : rawMaxBullWinRate;
