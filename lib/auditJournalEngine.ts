@@ -82,7 +82,7 @@ export class AuditJournalEngine {
     const maxCapitalAllocationAmount = Number(((capital * maxCapitalAllocationPct) / 100).toFixed(2));
     const maxRiskPerTradeAmount = Number(((capital * maxAccountRiskPct) / 100).toFixed(2));
 
-    const riskPerShare = Math.max(0.01, currentPrice - stopLoss);
+    const riskPerShare = Math.max(0.01, Math.abs(currentPrice - stopLoss));
     
     // Quantity limited by either max risk per share or max position size
     const sharesByRisk = Math.floor(maxRiskPerTradeAmount / riskPerShare);

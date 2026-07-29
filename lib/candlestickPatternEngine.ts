@@ -83,10 +83,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 6.8,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.6 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "Institutional Stop Hunt below equal lows (QML). Market makers swept retail stop orders before forcing a violent bullish reversal above 20 EMA.",
         keyConfirmationRule: "QML Retest confirmed: Enter on retest of QML demand zone with ATR-buffered SL below spike low (₹" + stopLossPrice + ").",
-        riskRewardRatio: 2.6,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -104,10 +104,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 7.2,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "Institutional Order Block & Fair Value Gap (FVG) created by aggressive institutional buying imbalance.",
         keyConfirmationRule: "Enter on retest of FVG imbalance zone with SL below Order Block low.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -129,10 +129,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 6.0,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "Price compressed tightly into demand zone clearing sell orders prior to explosive bullish expansion.",
         keyConfirmationRule: "Breakout confirmed on high volume candle above compression highs.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -155,10 +155,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 6.2,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "Classic 'W' Reversal Pattern forming at strong support. Second trough holding above prior low confirms exhaustion of sellers.",
         keyConfirmationRule: "Neckline breakout confirmation above ₹" + (maxHigh15 * 0.99).toFixed(2) + " with volume surge.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -176,10 +176,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: -5.8,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice - 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice - 5.0 * risk).toFixed(2)),
         description: "Ascending wedge pattern converging towards exhaustion peak. Breakdown below lower support trendline signals bearish reversal.",
         keyConfirmationRule: "Bearish confirmation on close below support neckline with stop loss at upper trendline (₹" + stopLossPrice + ").",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -197,10 +197,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 7.5,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "Horizontal resistance ceiling tested multiple times with ascending higher lows. Buyers compressing price towards imminent upward breakout.",
         keyConfirmationRule: "Entry on candle close above horizontal resistance (₹" + maxHigh15.toFixed(2) + ").",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -220,10 +220,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: -6.5,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice - 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice - 5.0 * risk).toFixed(2)),
         description: "Right Shoulder rejection following Head peak. Price breaking down below support neckline signals major trend reversal below 20 EMA.",
         keyConfirmationRule: "Exit long positions or set tight SL above Right Shoulder peak (₹" + stopLossPrice + ").",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -245,10 +245,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 5.5,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "Large green body completely engulfs prior red body. Buyers took total control of order flow.",
         keyConfirmationRule: "Confirm with follow-through green candle or 20 EMA bounce.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -266,10 +266,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 6.0,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "3-candle bullish reversal: strong decline -> indecision doji star -> powerful bullish reversal candle penetrating deep into first red body.",
         keyConfirmationRule: "Enter on confirmation close above 50% midpoint of first red candle.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -287,10 +287,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: 4.8,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice + 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice + 5.0 * risk).toFixed(2)),
         description: "Rejection of lower prices with strong buying tail above 20 EMA. Institutional buyers overwhelmed supply.",
         keyConfirmationRule: "Buy confirmation triggers when next candle crosses above Hammer high (₹" + lastBar.high.toFixed(2) + ").",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -308,10 +308,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: -5.0,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice - 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice - 5.0 * risk).toFixed(2)),
         description: "Rejection of higher prices with long upper wick. Bears pushed prices back down near open.",
         keyConfirmationRule: "Short entry triggered on close below Shooting Star low.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -331,10 +331,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: -5.5,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice - 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice - 5.0 * risk).toFixed(2)),
         description: "Large red body completely engulfs prior green body. Sellers seized total control of order flow — strong reversal signal.",
         keyConfirmationRule: "Confirm with follow-through red candle or break below 20 EMA.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -352,10 +352,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: -6.0,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice - 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice - 5.0 * risk).toFixed(2)),
         description: "3-candle bearish reversal: strong rally → indecision doji star → powerful bearish reversal candle penetrating deep into first green body.",
         keyConfirmationRule: "Short on confirmation close below 50% midpoint of first green candle.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
@@ -374,10 +374,10 @@ export class CandlestickPatternEngine {
         expectedMovePct: -6.2,
         entryPrice,
         stopLossPrice,
-        projectedTargetPrice: Number((entryPrice - 2.5 * risk).toFixed(2)),
+        projectedTargetPrice: Number((entryPrice - 5.0 * risk).toFixed(2)),
         description: "Classic 'M' Reversal Pattern forming at strong resistance. Second peak failing at prior high confirms exhaustion of buyers.",
         keyConfirmationRule: "Neckline breakdown confirmation below " + (minLow15 * 1.01).toFixed(2) + " with volume surge.",
-        riskRewardRatio: 2.5,
+        riskRewardRatio: 5.0,
         atrBuffer: atr14
       });
     }
