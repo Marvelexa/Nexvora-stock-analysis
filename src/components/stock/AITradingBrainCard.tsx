@@ -88,6 +88,7 @@ export const AITradingBrainCard: React.FC<AITradingBrainCardProps> = ({
   const handleExecuteTrade = (actionType: "BUY" | "SELL") => {
     const qty = isCrypto ? (symbol.includes("BTC") ? 0.5 : 5) : 10;
     const execPrice = activePriceToUse > 0 ? activePriceToUse : result.entryPrice;
+    const activePatternName = (result as any)?.detectedPatterns?.[0]?.patternName || undefined;
     const res = paperTradingEngine.openPosition(
       symbol,
       `${symbol} (${selectedMode.replace("_", " ")})`,
@@ -97,7 +98,8 @@ export const AITradingBrainCard: React.FC<AITradingBrainCardProps> = ({
       result.stopLoss,
       result.target1,
       isCrypto ? "USD" : "INR",
-      true // 1-Click Direct Execution Mode (bypasses cooldown block & auto-executes trade)
+      true, // 1-Click Direct Execution Mode (bypasses cooldown block & auto-executes trade)
+      activePatternName
     );
 
     setStatusMessage(res.message);
