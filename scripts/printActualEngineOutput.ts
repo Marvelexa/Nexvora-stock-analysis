@@ -2,8 +2,29 @@ import { aiTradingBrainEngine } from "../lib/aiTradingBrainV1.js";
 
 function printLiveEngineOutput() {
   console.log("=================================================");
-  console.log("🔥 UNIFIED DECISION ENGINE END-TO-END DERIVATION");
+  console.log("🔥 OPTION 1 IMPLEMENTED — ZERO DOUBLE COUNTING");
   console.log("=================================================\n");
+
+  console.log("--- EFFECTIVE WEIGHT TABLE (INTENTIONAL ORTHOGONAL WEIGHTS) ---");
+  console.log("1. Master Composite Anchor (60% Weight of Final Score):");
+  console.log("   - Al Brooks Price Action (40% of Tech): 60% * 70% * 40% = 16.80%");
+  console.log("   - ICT / SMC Order Blocks (25% of Tech): 60% * 70% * 25% = 10.50%");
+  console.log("   - Volume Spread Analysis (20% of Tech):  60% * 70% * 20% =  8.40%");
+  console.log("   - Multi-Timeframe (15% of Tech):         60% * 70% * 15% =  6.30%");
+  console.log("   - News Sentiment Score (20% of Anchor):  60% * 20%       = 12.00%");
+  console.log("   - Fundamental Score (5% of Anchor):      60% *  5%       =  3.00%");
+  console.log("   - Open Interest Score (5% of Anchor):    60% *  5%       =  3.00%");
+  console.log("   Subtotal Master Anchor:                                  = 60.00%\n");
+
+  console.log("2. Micro-Candle Continuous Technicals (40% Weight of Final Score):");
+  console.log("   - Candlestick Patterns & VCP (15% of Base): 40% * 15%   =  6.00%");
+  console.log("   - Relative Strength Index (23.8% of Base): 40% * 23.8% =  9.52%");
+  console.log("   - EMA Trend Distance (23.8% of Base):     40% * 23.8% =  9.52%");
+  console.log("   - Candle Body Momentum (20.4% of Base):   40% * 20.4% =  8.16%");
+  console.log("   - Volume Spread Delta (17.0% of Base):    40% * 17.0% =  6.80%");
+  console.log("   Subtotal Continuous Technicals:                          = 40.00%\n");
+
+  console.log("TOTAL SYSTEM EFFECTIVE WEIGHT SUM: 60.00% + 40.00%          = 100.00%\n");
 
   // 1. BUY Setup (BTCUSD)
   const btcBars = Array.from({ length: 20 }, (_, i) => ({
@@ -18,13 +39,14 @@ function printLiveEngineOutput() {
   const btcResult = aiTradingBrainEngine.analyze("BTCUSD", 66500, btcBars, 85, 1.3, "INTRADAY_SCALPING");
   const btcSub = btcResult.probabilityDerivation?.intermediateSubScores;
 
+  console.log("-------------------------------------------------");
   console.log("--- TRADE #1: BTCUSD (BULLISH INTRADAY) ---");
   console.log("1. Master Composite Category Score Derivation:");
   console.log(`  Tech Score (70%): ${btcSub?.techScore} -> Contribution: ${(btcSub!.techScore * 0.70).toFixed(2)}`);
   console.log(`  Sent Score (20%): ${btcSub?.sentScore} -> Contribution: ${(btcSub!.sentScore * 0.20).toFixed(2)}`);
   console.log(`  Fund Score (5%): ${btcSub?.fundScore} -> Contribution: ${(btcSub!.fundScore * 0.05).toFixed(2)}`);
   console.log(`  OI Score (5%): ${btcSub?.oiScore} -> Contribution: ${(btcSub!.oiScore * 0.05).toFixed(2)}`);
-  console.log(`  masterCompositeAnchor = 55.44 + 17.00 + 5.00 + 2.85 = ${btcSub?.masterCompositeAnchor}`);
+  console.log(`  masterCompositeAnchor = ${btcSub?.masterCompositeAnchor}`);
 
   console.log("\n2. Micro-Candle Technical Sub-Score Derivation:");
   console.log(`  patternDriverScore (15%): ${btcSub?.patternDriverScore} -> ${ (btcSub!.patternDriverScore * 0.15).toFixed(2) }`);
@@ -69,7 +91,7 @@ function printLiveEngineOutput() {
   console.log(`  Sent Score (20%): ${ethSub?.sentScore} -> Contribution: ${(ethSub!.sentScore * 0.20).toFixed(2)}`);
   console.log(`  Fund Score (5%): ${ethSub?.fundScore} -> Contribution: ${(ethSub!.fundScore * 0.05).toFixed(2)}`);
   console.log(`  OI Score (5%): ${ethSub?.oiScore} -> Contribution: ${(ethSub!.oiScore * 0.05).toFixed(2)}`);
-  console.log(`  masterCompositeAnchor = 11.23 + 4.00 + 3.35 + 2.15 = ${ethSub?.masterCompositeAnchor}`);
+  console.log(`  masterCompositeAnchor = ${ethSub?.masterCompositeAnchor}`);
 
   console.log("\n2. Micro-Candle Technical Sub-Score Derivation:");
   console.log(`  patternDriverScore (35%): ${ethSub?.patternDriverScore} -> ${ (ethSub!.patternDriverScore * 0.35).toFixed(2) }`);

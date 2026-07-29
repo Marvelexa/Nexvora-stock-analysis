@@ -481,7 +481,8 @@ export class AITradingBrainEngine {
     const maxBearWinRate = isPricePushingHighs ? Math.max(0, rawMaxBearWinRate - 35) : rawMaxBearWinRate;
     const maxBullWinRate = isPriceBreakingLows ? Math.max(0, rawMaxBullWinRate - 35) : rawMaxBullWinRate;
 
-    let patternDriverScore = (alBrooks.pressureScore * 0.60) + (smc.smcScore * 0.40);
+    // Pattern Driver Score: Driven purely by Candlestick Patterns & Minervini VCP to eliminate double-counting of Al Brooks & SMC
+    let patternDriverScore = vcp.vcpScore; // Pure VCP / Pattern baseline (50 = neutral)
 
     if (maxBearWinRate > 0 && maxBearWinRate > maxBullWinRate) {
       patternDriverScore = 100 - maxBearWinRate;
@@ -552,7 +553,7 @@ export class AITradingBrainEngine {
       finalSellProbabilityPct: sellWinProbabilityPct,
       // Full intermediate sub-scores chain for end-to-end mathematical audit
       intermediateSubScores: {
-        rawPatternDriverScore: Number(((alBrooks.pressureScore * 0.60) + (smc.smcScore * 0.40)).toFixed(2)),
+        vcpScore: Number(vcp.vcpScore.toFixed(2)),
         patternOverrideActive: maxBearWinRate > 0 || maxBullWinRate > 0,
         patternDriverScore: Number(patternDriverScore.toFixed(2)),
         rsiContribution: Number(rsiContribution.toFixed(2)),
