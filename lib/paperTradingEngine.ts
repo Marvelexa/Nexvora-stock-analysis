@@ -34,6 +34,7 @@ export interface PaperPosition {
   unrealizedPnLPct: number;
   currency?: "USD" | "INR";
   tradingMode?: string;
+  triggerPatternName?: string;
   timestamp: string;
 
   // Backward compatibility fields
@@ -233,7 +234,8 @@ export class PaperTradingEngine {
     stopLossPrice: number,
     targetPrice: number,
     currencyInput?: "USD" | "INR",
-    forceOverride: boolean = false
+    forceOverride: boolean = false,
+    triggerPatternName?: string
   ): { success: boolean; message: string; position?: PaperPosition } {
     const rawSym = (ticker || "").toUpperCase().trim();
     const isCrypto = rawSym.includes("BTC") || rawSym.includes("ETH") || rawSym.includes("SOL") || rawSym.includes("XRP") || rawSym.includes("DOGE") || rawSym.includes("BNB") || rawSym.includes("ADA") || rawSym.includes("AVAX") || rawSym.includes("DOT") || rawSym.includes("LINK") || rawSym.endsWith("USD") || rawSym.endsWith("USDT");
@@ -337,6 +339,7 @@ export class PaperTradingEngine {
       unrealizedPnL: 0,
       unrealizedPnLPct: 0,
       currency,
+      triggerPatternName,
       timestamp: new Date().toISOString().replace("T", " ").substring(0, 16)
     };
 
@@ -442,7 +445,8 @@ export class PaperTradingEngine {
       currency: pos.currency || "INR",
       entryTimestamp: pos.timestamp,
       closedAt: new Date().toISOString().replace("T", " ").substring(0, 16),
-      exitReason
+      exitReason,
+      triggerPatternName: pos.triggerPatternName || undefined
     });
 
     this.openPositions = this.openPositions.filter(p => p.id !== positionId);
