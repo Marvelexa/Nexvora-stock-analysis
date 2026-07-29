@@ -30,6 +30,7 @@ export interface TradeOutcomeRecord {
   entryTimestamp: string;
   closedAt: string;
   exitReason: string;
+  triggerPatternName?: string; // Optional pattern name that triggered entry
 }
 
 const STORAGE_KEY = "NEXVORA_TRADE_OUTCOMES_V1";
@@ -140,6 +141,32 @@ export class TradeOutcomesEngine {
       avgRealizedRR,
       readyForMLRecalibration: total >= 10
     };
+  }
+
+  /**
+   * Real Empirical Resolver: Queries accumulated trade_outcomes dataset for pattern win-rate.
+   * Requires sampleSize >= 10 closed trades; returns neutral 50.0% baseline if sampleSize < 10.
+   */
+  public getPatternEmpiricalWinRate(patternName: string): { winRatePct: number; sampleSize: number; isEmpiricallyValidated: boolean } {
+    const MIN_SAMPLE_SIZE = 10;
+    const matching = this.outcomes.filter(o => 
+      o.triggerPatternName && o.triggerPatternName.toLowerCase().includes(patternName.toLowerCase())
+    );
+
+    const sampleSize = matching.length;
+    if (sampleSize < MIN_SAMPLE_SIZE) {
+      return { winRatePct: 50.0, sampleSize, isEmpiricallyValidated: false };
+    }
+
+    const wins = matching.filter(o => 
+      o.realizedPnL > 0 || 
+      o.outcome === "MILESTONE_EXIT" || 
+      o.outcome === "HIT_FINAL_TARGET" || 
+      o.outcome === "HIT_TARGET"
+    ).length;
+
+    const winRatePct = Number(((wins / sampleSize) * 100).toFixed(1));
+    return { winRatePct, sampleSize, isEmpiricallyValidated: true };
   }
 }
 

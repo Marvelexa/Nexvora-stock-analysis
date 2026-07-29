@@ -1,4 +1,5 @@
 import { OHLCVBar } from "./stockEngine";
+import { tradeOutcomesEngine } from "./tradeOutcomesEngine";
 
 export interface CandlestickPatternMatch {
   patternName: string;
@@ -23,9 +24,7 @@ export class CandlestickPatternEngine {
    * returns a neutral baseline 50.0% (NOT a fabricated 75%/88% constant).
    */
   public getEmpiricalWinRate(patternName: string): { winRatePct: number; sampleSize: number; isEmpiricallyValidated: boolean } {
-    const MIN_SAMPLE_SIZE = 10;
-    // When trade_outcomes history has < 10 closed trades for this pattern, return neutral 50.0% baseline
-    return { winRatePct: 50.0, sampleSize: 0, isEmpiricallyValidated: false };
+    return tradeOutcomesEngine.getPatternEmpiricalWinRate(patternName);
   }
 
   /**

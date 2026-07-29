@@ -65,7 +65,9 @@ export const EvidenceBreakdownMatrixCard: React.FC<EvidenceBreakdownMatrixCardPr
       sellProbPct: 100 - historicalWinRate,
       weightPct: 15,
       contributionScore: Number((((historicalWinRate - 50) * 0.15)).toFixed(1)),
-      details: `N=${sampleSize} analogs matched (${memoryScore}% score)`
+      details: sampleSize >= 10 
+        ? `Empirically Validated (N=${sampleSize} outcomes matched)` 
+        : `Unvalidated (N=${sampleSize} < 10 — Neutral 50.0% Baseline)`
     },
     {
       engineName: "News Sentiment & Analyst Guidance",
