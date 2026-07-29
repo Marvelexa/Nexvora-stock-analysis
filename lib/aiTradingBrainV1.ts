@@ -833,6 +833,7 @@ export class AITradingBrainEngine {
       },
       scoreExplanations,
       probabilityDerivation,
+      detectedPatterns,
       patternMemoryReport,
       plattCalibratedProbPct,
       bayesianUpdatingReport,

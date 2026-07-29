@@ -149,8 +149,9 @@ export class TradeOutcomesEngine {
    */
   public getPatternEmpiricalWinRate(patternName: string): { winRatePct: number; sampleSize: number; isEmpiricallyValidated: boolean } {
     const MIN_SAMPLE_SIZE = 10;
+    const normalizedSearch = patternName.trim().toLowerCase();
     const matching = this.outcomes.filter(o => 
-      o.triggerPatternName && o.triggerPatternName.toLowerCase().includes(patternName.toLowerCase())
+      o.triggerPatternName && o.triggerPatternName.trim().toLowerCase() === normalizedSearch
     );
 
     const sampleSize = matching.length;
