@@ -510,11 +510,12 @@ export class AITradingBrainEngine {
       (volContribution * volWeight)
     );
 
-    // Dynamic continuous score with live micro-tick momentum adjustment
-    const continuousScore = Math.round(baseContinuousScore + tickMomentumBonus);
+    // Single Unified Decision Engine Score: Blends Master Composite Score (60%) + Micro-Candle Indicators (40%) + Tick Bonus
+    const masterCompositeAnchor = rawTrendScore;
+    const unifiedScore = Math.round((masterCompositeAnchor * 0.60) + (baseContinuousScore * 0.40) + tickMomentumBonus);
 
     // Clamp trendStrengthPct dynamically to full range [5, 95]
-    const trendStrengthPct = Math.min(95, Math.max(5, continuousScore));
+    const trendStrengthPct = Math.min(95, Math.max(5, unifiedScore));
 
     // Align MTF Overall Trend strictly with dynamic trendStrengthPct to eliminate UI mismatches
     if (trendStrengthPct >= 72) {
@@ -551,14 +552,20 @@ export class AITradingBrainEngine {
       finalSellProbabilityPct: sellWinProbabilityPct,
       // Full intermediate sub-scores chain for end-to-end mathematical audit
       intermediateSubScores: {
+        rawPatternDriverScore: Number(((alBrooks.pressureScore * 0.60) + (smc.smcScore * 0.40)).toFixed(2)),
+        patternOverrideActive: maxBearWinRate > 0 || maxBullWinRate > 0,
         patternDriverScore: Number(patternDriverScore.toFixed(2)),
         rsiContribution: Number(rsiContribution.toFixed(2)),
         emaContribution: Number(emaContribution.toFixed(2)),
         candleContribution: Number(candleContribution.toFixed(2)),
         volContribution: Number(volContribution.toFixed(2)),
+        vsaScore: Number(vsa.vsaScore.toFixed(2)),
+        masterCompositeAnchor: Number(rawTrendScore.toFixed(2)),
         baseContinuousScore: Number(baseContinuousScore.toFixed(2)),
         tickMomentumBonus: Number(tickMomentumBonus.toFixed(2)),
-        continuousScore: Number(continuousScore.toFixed(2)),
+        unifiedScore: Number(unifiedScore.toFixed(2)),
+        continuousScore: Number(unifiedScore.toFixed(2)),
+        techScoreFormula: `techScore = (${alBrooks.pressureScore} * 0.40) + (${smc.smcScore} * 0.25) + (${vsa.vsaScore} * 0.20) + (${mtf.confluenceScore} * 0.15)`,
         techScore: Number(techScore.toFixed(2)),
         sentScore: Number(sentScore.toFixed(2)),
         fundScore: Number(fundScore.toFixed(2)),
